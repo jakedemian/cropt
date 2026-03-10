@@ -54,6 +54,25 @@ export default function BottomToolbar({
   editingNode,
   onFontChange,
 }) {
+  // ── Hooks must be declared before any early returns (Rules of Hooks) ───────
+  const [bgOpen, setBgOpen] = useState(false)
+  const bgBtnRef = useRef(null)
+  const bgMenuRef = useRef(null)
+  const [bgPos, setBgPos] = useState({ left: 0, bottom: 0 })
+
+  useEffect(() => {
+    if (!bgOpen) return
+    const handler = (e) => {
+      if (bgBtnRef.current?.contains(e.target) || bgMenuRef.current?.contains(e.target)) return
+      setBgOpen(false)
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [bgOpen])
+
+  const isBold = selectedNode?.fontStyle?.includes('bold')
+  const isItalic = selectedNode?.fontStyle?.includes('italic')
+
   // While resizing, show only confirm / cancel
   if (canvasResizeMode) {
     return (
@@ -152,24 +171,6 @@ export default function BottomToolbar({
   }
 
   // ── Normal toolbar ──────────────────────────────────────────────────────────
-
-  const [bgOpen, setBgOpen] = useState(false)
-  const bgBtnRef = useRef(null)
-  const bgMenuRef = useRef(null)
-  const [bgPos, setBgPos] = useState({ left: 0, bottom: 0 })
-
-  useEffect(() => {
-    if (!bgOpen) return
-    const handler = (e) => {
-      if (bgBtnRef.current?.contains(e.target) || bgMenuRef.current?.contains(e.target)) return
-      setBgOpen(false)
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
-  }, [bgOpen])
-
-  const isBold = selectedNode?.fontStyle?.includes('bold')
-  const isItalic = selectedNode?.fontStyle?.includes('italic')
 
   return (
     <footer

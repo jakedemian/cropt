@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { version } from '../package.json'
+import { version } from '../../../package.json'
 import { useCanvasState } from './hooks/useCanvasState'
 import { useImageImport } from './hooks/useImageImport'
 import { useExport } from './hooks/useExport'
@@ -8,10 +8,10 @@ import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { useSessionPersistence } from './hooks/useSessionPersistence'
 import { useBackGuard } from './hooks/useBackGuard'
 import { cropNodeToCanvas, cropImageToRect } from './utils/canvasUtils'
-import CanvasStage from './components/Canvas/CanvasStage'
-import TopBar from './components/Toolbar/TopBar'
-import BottomToolbar from './components/Toolbar/BottomToolbar'
-import LayerPanel from './components/LayerPanel/LayerPanel'
+import CanvasStage from './Canvas/CanvasStage'
+import TopBar from './Toolbar/TopBar'
+import BottomToolbar from './Toolbar/BottomToolbar'
+import LayerPanel from './LayerPanel/LayerPanel'
 
 export default function App() {
   const stageRef = useRef(null)
@@ -121,10 +121,21 @@ export default function App() {
   // (e.g. image-import auto-expand).
   const [committedCanvasSize, setCommittedCanvasSize] = useState(canvasSize)
   useEffect(() => {
-    if (!canvasResizeMode) setCommittedCanvasSize(canvasSize)
+    if (!canvasResizeMode) setCommittedCanvasSize(canvasSize) // eslint-disable-line react-hooks/set-state-in-effect
   }, [canvasSize, canvasResizeMode])
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
+
+  // ── Crop mode ──────────────────────────────────────────────────────────────
+  const [cropMode, setCropMode] = useState(false)
+  const [cropRect, setCropRect] = useState(null) // { x, y, width, height } canvas coords
+
+  // ── Text mode ──────────────────────────────────────────────────────────────
+  const [textPlaceMode, setTextPlaceMode] = useState(false)
+  const [editingNodeId, setEditingNodeId] = useState(null)
+  // Snapshot of state (nodes, canvasSize, canvasBackground) taken before editing
+  // started — used to push history on confirm, or restore on cancel.
+  const [editingOrigState, setEditingOrigState] = useState(null)
 
   // ── New document ───────────────────────────────────────────────────────────
   const [confirmingNew, setConfirmingNew] = useState(false)
@@ -154,17 +165,6 @@ export default function App() {
       executeNewDocument()
     }
   }, [nodes.length, executeNewDocument])
-
-  // ── Crop mode ──────────────────────────────────────────────────────────────
-  const [cropMode, setCropMode] = useState(false)
-  const [cropRect, setCropRect] = useState(null) // { x, y, width, height } canvas coords
-
-  // ── Text mode ──────────────────────────────────────────────────────────────
-  const [textPlaceMode, setTextPlaceMode] = useState(false)
-  const [editingNodeId, setEditingNodeId] = useState(null)
-  // Snapshot of state (nodes, canvasSize, canvasBackground) taken before editing
-  // started — used to push history on confirm, or restore on cancel.
-  const [editingOrigState, setEditingOrigState] = useState(null)
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   // Placed after cropMode/textMode declarations to avoid temporal dead zone.

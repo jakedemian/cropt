@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Transformer } from 'react-konva'
 
-export default function TransformWrapper({ stageRef, nodes, selectedNodeId, onChange, imageLoadCount }) {
+export default function TransformWrapper({ stageRef, nodes, selectedNodeId, imageLoadCount }) {
   const trRef = useRef(null)
 
   useEffect(() => {

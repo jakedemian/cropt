@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Image as KonvaImage } from 'react-konva'
 
-export default function ImageNode({ node, isSelected, draggable = true, onSelect, onChange, onLoad }) {
+export default function ImageNode({ node, draggable = true, onSelect, onChange, onLoad }) {
   const [img, setImg] = useState(null)
   const imageRef = useRef(null)
 
@@ -10,7 +10,7 @@ export default function ImageNode({ node, isSelected, draggable = true, onSelect
     image.crossOrigin = 'anonymous'
     image.onload = () => { setImg(image); onLoad?.() }
     image.src = node.src
-  }, [node.src])
+  }, [node.src]) // eslint-disable-line react-hooks/exhaustive-deps -- onLoad intentionally excluded; it's a stable callback
 
   const handleDragEnd = (e) => {
     onChange({ x: e.target.x(), y: e.target.y() })

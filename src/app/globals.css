@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+/* added for Next.js */
+
 * {
   box-sizing: border-box;
 }

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Undo2, Redo2, MoreHorizontal, Check, Download, ClipboardPaste, Upload, FilePlus } from 'lucide-react'
 
 export default function TopBar({
-  canvasResizeMode, canvasSize, onNew,
+  canvasResizeMode, onNew,
   onExport, onCopy, onPaste, onUndo, onRedo, canUndo, canRedo,
   pixelRatio, onTogglePixelRatio, canInstall, onInstall,
   version,

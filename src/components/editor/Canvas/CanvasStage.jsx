@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { Stage, Layer, Rect } from 'react-konva'
-import { fitCanvasToContainer } from '../../utils/canvasUtils'
+import { fitCanvasToContainer } from '../utils/canvasUtils'
 import ImageNode from './ImageNode'
 import TextNode from './TextNode'
 import TextEditOverlay from './TextEditOverlay'

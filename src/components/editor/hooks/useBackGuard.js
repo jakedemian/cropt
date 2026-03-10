@@ -23,10 +23,15 @@ export function useBackGuard({ hasContent, onLeaveRequested, suppressBeforeUnloa
   // Keep a stable ref to the latest values so the popstate handler (created
   // once on mount) always sees fresh state without needing to re-register.
   const hasContentRef = useRef(hasContent)
-  hasContentRef.current = hasContent
-
   const onLeaveRequestedRef = useRef(onLeaveRequested)
-  onLeaveRequestedRef.current = onLeaveRequested
+
+  useEffect(() => {
+    hasContentRef.current = hasContent
+  })
+
+  useEffect(() => {
+    onLeaveRequestedRef.current = onLeaveRequested
+  })
 
   useEffect(() => {
     // Push a guard entry so the back gesture/button has something to pop

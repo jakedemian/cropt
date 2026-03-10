@@ -1,0 +1,53 @@
+import { useEffect, useRef, useState } from 'react'
+import { Image as KonvaImage } from 'react-konva'
+
+export default function ImageNode({ node, isSelected, draggable = true, onSelect, onChange, onLoad }) {
+  const [img, setImg] = useState(null)
+  const imageRef = useRef(null)
+
+  useEffect(() => {
+    const image = new window.Image()
+    image.crossOrigin = 'anonymous'
+    image.onload = () => { setImg(image); onLoad?.() }
+    image.src = node.src
+  }, [node.src])
+
+  const handleDragEnd = (e) => {
+    onChange({ x: e.target.x(), y: e.target.y() })
+  }
+
+  const handleTransformEnd = (e) => {
+    const node = e.target
+    onChange({
+      x: node.x(),
+      y: node.y(),
+      scaleX: node.scaleX(),
+      scaleY: node.scaleY(),
+      rotation: node.rotation(),
+    })
+  }
+
+  if (!img) return null
+
+  return (
+    <KonvaImage
+      ref={imageRef}
+      id={node.id}
+      image={img}
+      x={node.x}
+      y={node.y}
+      width={node.width}
+      height={node.height}
+      scaleX={node.flipX ? -node.scaleX : node.scaleX}
+      scaleY={node.scaleY}
+      offsetX={node.flipX ? node.width : 0}
+      rotation={node.rotation}
+      opacity={node.opacity}
+      draggable={draggable}
+      onClick={onSelect}
+      onTap={onSelect}
+      onDragEnd={handleDragEnd}
+      onTransformEnd={handleTransformEnd}
+    />
+  )
+}

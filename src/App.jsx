@@ -1,0 +1,512 @@
+import { useRef, useState, useEffect, useCallback } from 'react'
+import { v4 as uuidv4 } from 'uuid'
+import { version } from '../package.json'
+import { useCanvasState } from './hooks/useCanvasState'
+import { useImageImport } from './hooks/useImageImport'
+import { useExport } from './hooks/useExport'
+import { useInstallPrompt } from './hooks/useInstallPrompt'
+import { useSessionPersistence } from './hooks/useSessionPersistence'
+import { useBackGuard } from './hooks/useBackGuard'
+import { cropNodeToCanvas, cropImageToRect } from './utils/canvasUtils'
+import CanvasStage from './components/Canvas/CanvasStage'
+import TopBar from './components/Toolbar/TopBar'
+import BottomToolbar from './components/Toolbar/BottomToolbar'
+import LayerPanel from './components/LayerPanel/LayerPanel'
+
+export default function App() {
+  const stageRef = useRef(null)
+  const [showLayerPanel, setShowLayerPanel] = useState(false)
+  // Shared with useBackGuard — when the user confirms "Leave" in our custom
+  // dialog, this ref is set true before history.back() so the beforeunload
+  // handler stands down and doesn't show a redundant second dialog.
+  const suppressBeforeUnloadRef = useRef(false)
+
+  const {
+    canvasSize,
+    setCanvasSize,
+    canvasBackground,
+    setCanvasBackground,
+    canvasResizeMode,
+    toggleResizeMode,
+    nodes,
+    addNode,
+    updateNode,
+    removeNode,
+    reorderNodes,
+    replaceNodes,
+    selectedNodeId,
+    selectNode,
+    stageViewport,
+    setStageViewport,
+    pushHistory,
+    pushSnapshot,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    resetDocument,
+  } = useCanvasState()
+
+  const { save, loadSession, clearSession } = useSessionPersistence()
+
+  // ── Restore session on mount ───────────────────────────────────────────────
+  // Runs exactly once. Silently restores the last saved canvas state if one
+  // exists. No prompt — just restore. loadSession() returns null on miss,
+  // corrupt data, or private browsing.
+  useEffect(() => {
+    const session = loadSession()
+    if (!session) return
+    replaceNodes(session.nodes)
+    setCanvasSize(session.canvasSize)
+    setCanvasBackground(session.canvasBackground)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs once on mount
+
+  // ── Auto-save on every meaningful change ──────────────────────────────────
+  // Debounced inside the hook (1500 ms). Skip while in resize mode because
+  // canvasSize is partially-dragged and not a valid committed value.
+  useEffect(() => {
+    if (canvasResizeMode) return
+    save({ nodes, canvasSize, canvasBackground })
+  }, [nodes, canvasSize, canvasBackground, canvasResizeMode, save])
+
+  // Wrap addNode so every import pushes a history snapshot first.
+  const addNodeWithHistory = useCallback((node) => {
+    pushHistory()
+    addNode(node)
+  }, [pushHistory, addNode])
+
+  const { inputRef, openPicker, handleFileChange, handlePaste } = useImageImport({ canvasSize, setCanvasSize, addNode: addNodeWithHistory, selectNode })
+
+  // Wrap updateNode for canvas interactions (drag end, transform end).
+  // Opacity is handled separately via onOpacityStart.
+  const updateNodeWithHistory = useCallback((id, updates) => {
+    pushHistory()
+    updateNode(id, updates)
+  }, [pushHistory, updateNode])
+  const [pixelRatio, setPixelRatio] = useState(1)
+  const { exportCanvas, copyCanvas } = useExport({ stageRef, canvasBackground, canvasSize, pixelRatio })
+  const { canInstall, promptInstall } = useInstallPrompt()
+
+  // ── Back-button guard (Android PWA + browsers) ────────────────────────────
+  // Pushes a history guard state so the back button shows our custom dialog
+  // instead of immediately leaving. iOS PWA swipe-close cannot be intercepted
+  // (OS limitation) — this guard only helps on Android PWA and desktop/mobile
+  // browsers where history.popstate is fired before the page unloads.
+  const [showLeaveWarning, setShowLeaveWarning] = useState(false)
+  const onLeaveRequested = useCallback(() => setShowLeaveWarning(true), [])
+  const { confirmLeave } = useBackGuard({
+    hasContent: nodes.length > 0,
+    onLeaveRequested,
+    suppressBeforeUnloadRef,
+  })
+
+  // ── Unsaved-work guard ─────────────────────────────────────────────────────
+  // Warn the browser before the user navigates away or closes the tab/window
+  // while there is content on the canvas. Covers: tab close, Cmd+Q, Alt+F4,
+  // and the window X button. suppressBeforeUnloadRef lets confirmLeave() silence
+  // this handler after the user has already confirmed via the back-button dialog,
+  // preventing a redundant second native dialog.
+  useEffect(() => {
+    const handler = (e) => {
+      if (nodes.length === 0 || suppressBeforeUnloadRef.current) return
+      e.preventDefault()
+      e.returnValue = ''   // required for Chrome to show the dialog
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [nodes.length])
+
+  // Committed size: updates on handle release (via onResizeCommit) while in
+  // resize mode, and tracks canvasSize automatically when outside resize mode
+  // (e.g. image-import auto-expand).
+  const [committedCanvasSize, setCommittedCanvasSize] = useState(canvasSize)
+  useEffect(() => {
+    if (!canvasResizeMode) setCommittedCanvasSize(canvasSize)
+  }, [canvasSize, canvasResizeMode])
+
+  const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
+
+  // ── New document ───────────────────────────────────────────────────────────
+  const [confirmingNew, setConfirmingNew] = useState(false)
+
+  const executeNewDocument = useCallback(() => {
+    // Exit any active sub-mode before wiping state
+    setCropMode(false)
+    setCropRect(null)
+    setTextPlaceMode(false)
+    setEditingNodeId(null)
+    setEditingOrigState(null)
+    setShowLayerPanel(false)
+    // Reset all canvas state and history
+    resetDocument()
+    // Wipe the saved session — fast "New → confirm" can't re-save old state
+    // because clearSession() also cancels the pending debounce timer.
+    clearSession()
+    // Reset viewport to default position
+    setStageViewport({ x: 0, y: 0, scale: 1 })
+    setConfirmingNew(false)
+  }, [resetDocument, clearSession, setStageViewport])
+
+  const handleNewDocument = useCallback(() => {
+    if (nodes.length > 0) {
+      setConfirmingNew(true)
+    } else {
+      executeNewDocument()
+    }
+  }, [nodes.length, executeNewDocument])
+
+  // ── Crop mode ──────────────────────────────────────────────────────────────
+  const [cropMode, setCropMode] = useState(false)
+  const [cropRect, setCropRect] = useState(null) // { x, y, width, height } canvas coords
+
+  // ── Text mode ──────────────────────────────────────────────────────────────
+  const [textPlaceMode, setTextPlaceMode] = useState(false)
+  const [editingNodeId, setEditingNodeId] = useState(null)
+  // Snapshot of state (nodes, canvasSize, canvasBackground) taken before editing
+  // started — used to push history on confirm, or restore on cancel.
+  const [editingOrigState, setEditingOrigState] = useState(null)
+
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  // Placed after cropMode/textMode declarations to avoid temporal dead zone.
+  useEffect(() => {
+    const handler = (e) => {
+      if (canvasResizeMode || cropMode || editingNodeId) return   // don't undo mid-operation
+      if (!(e.metaKey || e.ctrlKey)) return
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
+      if (e.key === 'z' &&  e.shiftKey) { e.preventDefault(); redo() }
+      if (e.key === 'y')                { e.preventDefault(); redo() }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [undo, redo, canvasResizeMode, cropMode, editingNodeId])
+
+  // ── Paste image from clipboard (Ctrl+V / Cmd+V) ─────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      if (editingNodeId) return   // don't intercept paste while editing text
+      if (e.clipboardData) handlePaste(e.clipboardData)
+    }
+    window.addEventListener('paste', handler)
+    return () => window.removeEventListener('paste', handler)
+  }, [editingNodeId, handlePaste])
+
+  // ── Crop handlers ──────────────────────────────────────────────────────────
+
+  const handleEnterCrop = () => {
+    if (!selectedNode || selectedNode.type !== 'image') return
+    const absScaleX = Math.abs(selectedNode.scaleX)
+    const absScaleY = Math.abs(selectedNode.scaleY)
+    setCropRect({
+      x: selectedNode.x,
+      y: selectedNode.y,
+      width:  selectedNode.width  * absScaleX,
+      height: selectedNode.height * absScaleY,
+    })
+    setCropMode(true)
+    setShowLayerPanel(false)
+  }
+
+  const handleConfirmCrop = async () => {
+    if (!selectedNode || !cropRect) return
+    pushHistory()
+    const updates = await cropImageToRect(selectedNode, cropRect)
+    updateNode(selectedNode.id, updates)
+    setCropMode(false)
+    setCropRect(null)
+  }
+
+  const handleCancelCrop = () => {
+    setCropMode(false)
+    setCropRect(null)
+  }
+
+  // ── Resize mode ────────────────────────────────────────────────────────────
+  // Save canvas size on entry so cancel can restore it.
+  const preResizeCanvasSize = useRef(null)
+
+  const handleEnterResize = () => {
+    preResizeCanvasSize.current = canvasSize
+    toggleResizeMode()
+    setShowLayerPanel(false)
+  }
+
+  // Confirm: destructively crop all image nodes to the new canvas bounds.
+  const handleConfirmResize = async () => {
+    // Snapshot the state BEFORE the resize using the original canvas size,
+    // because canvasSize has already changed via live handle dragging.
+    pushSnapshot({ nodes, canvasSize: preResizeCanvasSize.current, canvasBackground })
+    const results = await Promise.all(
+      nodes.map((node) => cropNodeToCanvas(node, canvasSize.width, canvasSize.height))
+    )
+    const validNodes = results.filter(Boolean)
+    replaceNodes(validNodes)
+    if (selectedNodeId && !validNodes.find((n) => n.id === selectedNodeId)) {
+      selectNode(null)
+    }
+    toggleResizeMode()
+  }
+
+  // Cancel: restore original canvas size and exit without committing.
+  const handleCancelResize = () => {
+    if (preResizeCanvasSize.current) setCanvasSize(preResizeCanvasSize.current)
+    toggleResizeMode()
+  }
+
+  // ── Text placement handlers ────────────────────────────────────────────────
+
+  const handleEnterTextPlaceMode = () => {
+    setTextPlaceMode(true)
+    setShowLayerPanel(false)
+    selectNode(null)
+  }
+
+  const handleCancelTextPlace = () => {
+    setTextPlaceMode(false)
+  }
+
+  // Called by CanvasStage when the user clicks in text placement mode.
+  const handlePlaceText = (canvasX, canvasY) => {
+    const id = uuidv4()
+    const textNode = {
+      id,
+      type: 'text',
+      name: 'Text',
+      text: '',
+      x: canvasX,
+      y: canvasY,
+      width: 0,        // 0 = auto-width (single-line, expands with content)
+      fontSize: 60,
+      fontFamily: 'Anton',
+      fontStyle: 'normal',
+      fill: '#ffffff',
+      stroke: '#000000',
+      strokeWidth: 2,
+      align: 'left',
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: 1,
+      visible: true,
+    }
+    // Save current state (without the text node) so we can push it to history
+    // when the user confirms — enabling Ctrl+Z to undo the text addition.
+    setEditingOrigState({ nodes, canvasSize, canvasBackground })
+    addNode(textNode)
+    selectNode(id)
+    setTextPlaceMode(false)
+    setEditingNodeId(id)
+  }
+
+  // ── Text edit handlers ─────────────────────────────────────────────────────
+
+  // Enter inline edit mode for an existing confirmed text node.
+  const handleStartEditText = (id) => {
+    const node = nodes.find((n) => n.id === id)
+    if (!node) return
+    // Save current state so we can push it to history on confirm (undo = original text),
+    // or restore it on cancel.
+    setEditingOrigState({ nodes, canvasSize, canvasBackground })
+    setEditingNodeId(id)
+  }
+
+  const handleConfirmTextEdit = () => {
+    const node = nodes.find((n) => n.id === editingNodeId)
+    if (!node) {
+      setEditingNodeId(null)
+      setEditingOrigState(null)
+      return
+    }
+    if (!node.text.trim()) {
+      // Empty text — remove the node without pushing to history
+      removeNode(editingNodeId)
+    } else if (editingOrigState) {
+      // Push the pre-edit snapshot so Ctrl+Z can undo this text change/addition
+      pushSnapshot(editingOrigState)
+    }
+    setEditingNodeId(null)
+    setEditingOrigState(null)
+  }
+
+  const handleCancelTextEdit = () => {
+    if (editingOrigState) {
+      const wasNew = !editingOrigState.nodes.find((n) => n.id === editingNodeId)
+      if (wasNew) {
+        // Node was just placed — remove it (no history change needed)
+        removeNode(editingNodeId)
+      } else {
+        // Existing node — restore its original text
+        const origNode = editingOrigState.nodes.find((n) => n.id === editingNodeId)
+        if (origNode) updateNode(editingNodeId, { text: origNode.text })
+      }
+    }
+    setEditingNodeId(null)
+    setEditingOrigState(null)
+  }
+
+  return (
+    <div className="flex flex-col w-full h-full bg-[#24272f]">
+      <TopBar
+        canvasResizeMode={canvasResizeMode}
+        canvasSize={committedCanvasSize}
+        onNew={handleNewDocument}
+        onExport={exportCanvas}
+        onCopy={copyCanvas}
+        onPaste={() => handlePaste()}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        pixelRatio={pixelRatio}
+        onTogglePixelRatio={() => setPixelRatio((r) => (r === 1 ? 2 : 1))}
+        canInstall={canInstall}
+        onInstall={promptInstall}
+        version={version}
+      />
+
+      {/* Canvas + layer panel live in the same relative container */}
+      <div className="flex-1 overflow-hidden relative">
+        <CanvasStage
+          stageRef={stageRef}
+          canvasSize={canvasSize}
+          canvasBackground={canvasBackground}
+          canvasResizeMode={canvasResizeMode}
+          nodes={nodes}
+          selectedNodeId={selectedNodeId}
+          stageViewport={stageViewport}
+          setStageViewport={setStageViewport}
+          selectNode={selectNode}
+          updateNode={updateNodeWithHistory}
+          setCanvasSize={setCanvasSize}
+          replaceNodes={replaceNodes}
+          onResizeCommit={setCommittedCanvasSize}
+          cropMode={cropMode}
+          cropRect={cropRect}
+          setCropRect={setCropRect}
+          textPlaceMode={textPlaceMode}
+          onPlaceText={handlePlaceText}
+          editingNodeId={editingNodeId}
+          onStartEditText={handleStartEditText}
+          onTextChange={(text) => editingNodeId && updateNode(editingNodeId, { text })}
+          onConfirmTextEdit={handleConfirmTextEdit}
+          onCancelTextEdit={handleCancelTextEdit}
+        />
+
+        {showLayerPanel && (
+          <LayerPanel
+            nodes={nodes}
+            selectedNodeId={selectedNodeId}
+            onSelectNode={selectNode}
+            onToggleVisible={(id) => {
+              const node = nodes.find((n) => n.id === id)
+              if (node) { pushHistory(); updateNode(id, { visible: !node.visible }) }
+            }}
+            onReorder={(newNodes) => { pushHistory(); reorderNodes(newNodes) }}
+            onClose={() => setShowLayerPanel(false)}
+          />
+        )}
+      </div>
+
+      <BottomToolbar
+        canvasResizeMode={canvasResizeMode}
+        cropMode={cropMode}
+        textPlaceMode={textPlaceMode}
+        isTextEditing={editingNodeId !== null}
+        selectedNode={selectedNode}
+        canvasSize={canvasSize}
+        canvasBackground={canvasBackground}
+        showLayerPanel={showLayerPanel}
+        onAddImage={openPicker}
+        onFlip={() => { if (selectedNode) { pushHistory(); updateNode(selectedNode.id, { flipX: !selectedNode.flipX }) } }}
+        onDelete={() => { if (selectedNode) { pushHistory(); removeNode(selectedNode.id) } }}
+        onOpacityStart={() => pushHistory()}
+        onOpacityChange={(v) => selectedNode && updateNode(selectedNode.id, { opacity: v })}
+        onSetBackground={(bg) => { pushHistory(); setCanvasBackground(bg) }}
+        onToggleLayerPanel={() => setShowLayerPanel((p) => !p)}
+        onEnterResize={handleEnterResize}
+        onConfirmResize={handleConfirmResize}
+        onCancelResize={handleCancelResize}
+        onEnterCrop={handleEnterCrop}
+        onConfirmCrop={handleConfirmCrop}
+        onCancelCrop={handleCancelCrop}
+        onEnterTextPlaceMode={handleEnterTextPlaceMode}
+        onCancelTextPlace={handleCancelTextPlace}
+        onEnterTextEdit={() => selectedNode?.type === 'text' && handleStartEditText(selectedNode.id)}
+        onConfirmTextEdit={handleConfirmTextEdit}
+        onCancelTextEdit={handleCancelTextEdit}
+        onTextStyleStart={() => pushHistory()}
+        onTextStyleChange={(updates) => selectedNode && updateNode(selectedNode.id, updates)}
+        editingNode={nodes.find((n) => n.id === editingNodeId) ?? null}
+        onFontChange={(fontFamily) => editingNodeId && updateNode(editingNodeId, { fontFamily })}
+      />
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      {/* Leave warning dialog — shown when back button is pressed with content */}
+      {showLeaveWarning && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setShowLeaveWarning(false)}
+        >
+          <div
+            className="bg-[#2d3139] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-white font-semibold text-base mb-2">Leave Cropt?</h2>
+            <p className="text-white/40 text-sm mb-6">Your canvas hasn&apos;t been exported yet. Unsaved changes may be lost.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowLeaveWarning(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors"
+              >
+                Stay
+              </button>
+              <button
+                onClick={confirmLeave}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 transition-colors"
+              >
+                Leave Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Document confirmation dialog */}
+      {confirmingNew && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setConfirmingNew(false)}
+        >
+          <div
+            className="bg-[#2d3139] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-white font-semibold text-base mb-2">Start a new document?</h2>
+            <p className="text-white/40 text-sm mb-6">All unsaved changes will be lost.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmingNew(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeNewDocument}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-500 transition-colors"
+              >
+                New Document
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -1,16 +1,58 @@
-# React + Vite
+# Cropt
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A mobile-first PWA for creating and sharing memes. Create in the editor, upload, get a shareable link. The landing page is a public feed of hosted memes.
 
-Currently, two official plugins are available:
+**Live:** https://cropt.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Styling | Tailwind CSS v4 |
+| Canvas | Konva.js + react-konva |
+| PWA | @ducanh2912/next-pwa |
+| Database | Neon (serverless Postgres) + Drizzle ORM |
+| Storage | Cloudflare R2 |
+| Moderation | AWS Rekognition |
+| Hosting | Vercel |
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Routes
+
+| Route | Description |
+|---|---|
+| `/` | Feed — chronological grid of hosted memes |
+| `/create` | Editor — client-only, PWA installable |
+| `/m/[id]` | Viewer — SSR with OG tags for social sharing |
+| `/dmca` | DMCA policy and takedown instructions |
+| `/api/upload` | POST — moderate, store, return share URL |
+| `/api/report` | POST — flag content for review |
+
+---
+
+## Development
+
+```bash
+npm run dev          # Start dev server
+npm run build        # Production build
+npm run lint         # ESLint
+npm run db:generate  # Generate Drizzle migration files
+npm run db:migrate   # Run migrations against Neon
+npm run db:studio    # Open Drizzle Studio (DB browser)
+```
+
+Copy `.env.local.example` to `.env.local` and fill in all values before running locally.
+
+---
+
+## Deployment
+
+Push to `main` triggers a production deploy via Vercel's GitHub integration.
+
+```bash
+vercel --prod   # Manual deploy
+```

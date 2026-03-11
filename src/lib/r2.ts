@@ -14,7 +14,7 @@ export async function uploadToR2(key: string, body: Buffer, contentType: string)
 
   const res = await getClient().fetch(url, {
     method:  'PUT',
-    body,
+    body:    new Uint8Array(body),
     headers: { 'Content-Type': contentType },
   })
 

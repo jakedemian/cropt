@@ -1,10 +1,10 @@
 import { RekognitionClient, DetectModerationLabelsCommand } from '@aws-sdk/client-rekognition'
 
 const client = new RekognitionClient({
-  region:      process.env.AWS_REGION!,
+  region:      process.env.REKOGNITION_REGION!,
   credentials: {
-    accessKeyId:     process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId:     process.env.REKOGNITION_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.REKOGNITION_SECRET_ACCESS_KEY!,
   },
 })
 

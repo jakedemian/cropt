@@ -19,8 +19,6 @@ Wire up MCP servers for Neon and AWS so Claude Code sessions can directly query 
 
 ## Known Bugs
 
-- **Rekognition moderation non-fatal** — `@aws-sdk/client-rekognition` throws `ERR_INVALID_CHAR` in Vercel's runtime despite all credentials being correct. Moderation errors are caught and logged; uploads proceed unmoderated. Needs investigation — possibly replace with `aws4fetch` like R2, or find another approach.
-
 - **Export/Copy canvas blink** — Brief flash when exporting. Root cause: resetting the Konva stage transform triggers a layer redraw the browser paints before the restore runs. Proper fix: capture via an offscreen canvas bypassing the stage transform entirely.
 
 - **Desktop PWA Cmd+Q doesn't trigger leave warning** — macOS Cmd+Q force-quits before `beforeunload` fires. OS-level limitation; no clean fix.

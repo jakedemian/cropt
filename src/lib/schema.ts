@@ -10,6 +10,7 @@ export const uploads = pgTable('uploads', {
   mimeType:    text('mime_type').default('image/png'),
   flagged:     boolean('flagged').default(false).notNull(),
   reportCount: integer('report_count').default(0).notNull(),
+  ipHash:      text('ip_hash'),                                 // SHA-256 of uploader IP for rate limiting
 })
 
 export type Upload = typeof uploads.$inferSelect

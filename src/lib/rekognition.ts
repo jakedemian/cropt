@@ -13,9 +13,9 @@ const BLOCKED_CATEGORIES = [
 const CONFIDENCE_THRESHOLD = 90
 
 export async function moderateImage(imageBytes: Buffer): Promise<{ blocked: boolean; reason?: string }> {
-  const region = process.env.REKOGNITION_REGION?.trim()
-  const accessKeyId = process.env.REKOGNITION_ACCESS_KEY_ID?.trim()
-  const secretAccessKey = process.env.REKOGNITION_SECRET_ACCESS_KEY?.trim()
+  const region = process.env.REKOGNITION_REGION
+  const accessKeyId = process.env.REKOGNITION_ACCESS_KEY_ID
+  const secretAccessKey = process.env.REKOGNITION_SECRET_ACCESS_KEY
 
   const client = new RekognitionClient({
     region,

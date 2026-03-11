@@ -155,6 +155,8 @@ See `.env.local.example` for all required variables. Never commit `.env.local`.
 | `REKOGNITION_SECRET_ACCESS_KEY` | IAM user secret for Rekognition |
 | `REKOGNITION_REGION` | `us-east-1` (note: must NOT use `AWS_` prefix — Vercel reserves those names) |
 
+> **Warning:** Always set env vars in the Vercel dashboard UI, never via the CLI or API with shell variable interpolation. Shell interpolation adds trailing newlines to values which silently corrupt signing headers and are very hard to debug.
+
 ---
 
 ## Deployment

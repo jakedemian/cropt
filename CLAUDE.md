@@ -151,9 +151,9 @@ See `.env.local.example` for all required variables. Never commit `.env.local`.
 | `R2_SECRET_ACCESS_KEY` | R2 API token secret |
 | `R2_BUCKET_NAME` | `cropt-uploads` |
 | `R2_PUBLIC_URL` | Public R2 URL for serving images |
-| `AWS_ACCESS_KEY_ID` | IAM user key for Rekognition |
-| `AWS_SECRET_ACCESS_KEY` | IAM user secret for Rekognition |
-| `AWS_REGION` | `us-east-1` |
+| `REKOGNITION_ACCESS_KEY_ID` | IAM user key for Rekognition |
+| `REKOGNITION_SECRET_ACCESS_KEY` | IAM user secret for Rekognition |
+| `REKOGNITION_REGION` | `us-east-1` (note: must NOT use `AWS_` prefix — Vercel reserves those names) |
 
 ---
 

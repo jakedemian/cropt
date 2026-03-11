@@ -1,4 +1,5 @@
 import { RekognitionClient, DetectModerationLabelsCommand } from '@aws-sdk/client-rekognition'
+import { FetchHttpHandler } from '@smithy/fetch-http-handler'
 
 const BLOCKED_CATEGORIES = [
   'Explicit Nudity',
@@ -19,6 +20,7 @@ export async function moderateImage(imageBytes: Buffer): Promise<{ blocked: bool
   const client = new RekognitionClient({
     region,
     credentials: { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey! },
+    requestHandler: new FetchHttpHandler(),
   })
 
   const response = await client.send(new DetectModerationLabelsCommand({

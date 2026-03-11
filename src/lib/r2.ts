@@ -1,24 +1,26 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { AwsClient } from 'aws4fetch'
 
-function getR2Client() {
-  return new S3Client({
-    region: 'auto',
-    endpoint: `https://${process.env.R2_ACCOUNT_ID!}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId:     process.env.R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-      sessionToken:    '',
-    },
+function getClient() {
+  return new AwsClient({
+    accessKeyId:     process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    service:         's3',
+    region:          'auto',
   })
 }
 
 export async function uploadToR2(key: string, body: Buffer, contentType: string) {
-  const r2 = getR2Client()
-  await r2.send(new PutObjectCommand({
-    Bucket:      process.env.R2_BUCKET_NAME!,
-    Key:         key,
-    Body:        body,
-    ContentType: contentType,
-  }))
+  const url = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.R2_BUCKET_NAME}/${key}`
+
+  const res = await getClient().fetch(url, {
+    method:  'PUT',
+    body,
+    headers: { 'Content-Type': contentType },
+  })
+
+  if (!res.ok) {
+    throw new Error(`R2 upload failed: ${res.status} ${res.statusText}`)
+  }
+
   return `${process.env.R2_PUBLIC_URL!}/${key}`
 }

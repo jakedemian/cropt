@@ -17,6 +17,7 @@
     "@aws-sdk/client-s3": "^3.1006.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@neondatabase/serverless": "^1.0.2",
+    "aws4fetch": "^1.0.20",
     "drizzle-orm": "^0.45.1",
     "image-size": "^2.0.2",
     "konva": "^10.2.0",

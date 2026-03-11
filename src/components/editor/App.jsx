@@ -4,6 +4,7 @@ import { version } from '../../../package.json'
 import { useCanvasState } from './hooks/useCanvasState'
 import { useImageImport } from './hooks/useImageImport'
 import { useExport } from './hooks/useExport'
+import { useUpload } from './hooks/useUpload'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { useSessionPersistence } from './hooks/useSessionPersistence'
 import { useBackGuard } from './hooks/useBackGuard'
@@ -84,7 +85,8 @@ export default function App() {
     updateNode(id, updates)
   }, [pushHistory, updateNode])
   const [pixelRatio, setPixelRatio] = useState(1)
-  const { exportCanvas, copyCanvas } = useExport({ stageRef, canvasBackground, canvasSize, pixelRatio })
+  const { exportCanvas, copyCanvas, captureBlob } = useExport({ stageRef, canvasBackground, canvasSize, pixelRatio })
+  const { status: uploadStatus, shareUrl, error: uploadError, upload, reset: resetUpload } = useUpload({ captureBlob })
   const { canInstall, promptInstall } = useInstallPrompt()
 
   // ── Back-button guard (Android PWA + browsers) ────────────────────────────
@@ -361,6 +363,8 @@ export default function App() {
         canInstall={canInstall}
         onInstall={promptInstall}
         version={version}
+        onShare={upload}
+        uploadStatus={uploadStatus}
       />
 
       {/* Canvas + layer panel live in the same relative container */}
@@ -474,6 +478,75 @@ export default function App() {
                 Leave Anyway
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share result dialog */}
+      {(uploadStatus === 'success' || uploadStatus === 'error') && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={resetUpload}
+        >
+          <div
+            className="bg-[#2d3139] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {uploadStatus === 'success' ? (
+              <>
+                <h2 className="text-white font-semibold text-base mb-1">Meme uploaded!</h2>
+                <p className="text-white/40 text-sm mb-4">Share this link with anyone.</p>
+                <div className="flex gap-2 mb-4">
+                  <input
+                    readOnly
+                    value={shareUrl}
+                    className="flex-1 bg-[#363b44] text-white/80 text-xs px-3 py-2 rounded-lg outline-none select-all"
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <button
+                    onClick={() => navigator.clipboard?.writeText(shareUrl)}
+                    className="px-3 py-2 rounded-lg text-xs font-medium bg-[#5865f2] text-white hover:bg-[#4752c4] transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={resetUpload}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors"
+                  >
+                    Close
+                  </button>
+                  <a
+                    href={shareUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
+                  >
+                    View page →
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-white font-semibold text-base mb-2">Upload failed</h2>
+                <p className="text-white/40 text-sm mb-6">{uploadError}</p>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={resetUpload}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={upload}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-[#5865f2] text-white hover:bg-[#4752c4] transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

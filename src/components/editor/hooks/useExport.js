@@ -126,5 +126,5 @@ export function useExport({ stageRef, canvasBackground, canvasSize, pixelRatio =
     }
   }, [captureBlob, exportCanvas])
 
-  return { exportCanvas, copyCanvas }
+  return { exportCanvas, copyCanvas, captureBlob }
 }

@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { Undo2, Redo2, MoreHorizontal, Check, Download, ClipboardPaste, Upload, FilePlus } from 'lucide-react'
+import { Undo2, Redo2, MoreHorizontal, Check, Download, ClipboardPaste, Upload, FilePlus, Link, Loader2 } from 'lucide-react'
 
 export default function TopBar({
   canvasResizeMode, onNew,
   onExport, onCopy, onPaste, onUndo, onRedo, canUndo, canRedo,
   pixelRatio, onTogglePixelRatio, canInstall, onInstall,
-  version,
+  version, onShare, uploadStatus,
 }) {
   const inMode = canvasResizeMode
   const [moreOpen, setMoreOpen] = useState(false)
@@ -157,6 +157,18 @@ export default function TopBar({
           className="hidden sm:flex items-center gap-1.5 px-3 h-9 rounded text-xs font-medium bg-[#363b44] text-white/60 hover:bg-[#424850] transition-colors"
         >
           <ClipboardPaste size={14} /> Paste
+        </button>
+        <button
+          onClick={onShare}
+          disabled={uploadStatus === 'uploading' || inMode}
+          title="Upload & share"
+          className="flex items-center gap-1.5 px-3 h-9 rounded text-xs font-medium bg-[#5865f2] text-white hover:bg-[#4752c4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {uploadStatus === 'uploading'
+            ? <Loader2 size={14} className="animate-spin" />
+            : <Link size={14} />
+          }
+          Share
         </button>
         <button
           onClick={onExport}

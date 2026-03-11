@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { uploads } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import ViewerActions from './ViewerActions'
+import Footer from '@/components/shared/Footer'
 import type { Metadata } from 'next'
 
 const getUpload = cache(async (id: string) => {
@@ -79,6 +80,7 @@ export default async function ViewerPage(
       {/* Copy link + Report */}
       <ViewerActions id={upload.id} shareUrl={shareUrl} />
 
+      <Footer />
     </div>
   )
 }

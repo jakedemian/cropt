@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { uploads } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import FeedGrid from '@/components/feed/FeedGrid'
+import Footer from '@/components/shared/Footer'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -56,6 +57,7 @@ export default async function Home() {
       {/* Feed grid */}
       <FeedGrid initialUploads={feedItems} initialCursor={nextCursor} />
 
+      <Footer />
     </div>
   )
 }

@@ -8,8 +8,8 @@ Currently `.env.local` points directly at the production Neon database. Split in
 
 
 ### MCP Integration
-Wire up MCP servers for Neon, Cloudflare, and AWS so Claude Code sessions can directly query usage, costs, and data in plain English. Config is already in `~/.claude.json` but tools aren't loading in sessions — needs investigation.
+Wire up MCP servers for Neon and AWS so Claude Code sessions can directly query usage, costs, and data in plain English. Cloudflare MCP is working. AWS CLI is configured and usable as a fallback for now.
 
-- Neon MCP: `https://mcp.neon.tech/mcp` (global install done)
-- Cloudflare MCP: `https://mcp.cloudflare.com/mcp` (project-level)
-- AWS Billing MCP: `uvx awslabs.cost-analysis-mcp-server@latest` (project-level)
+- Neon MCP: `https://mcp.neon.tech/mcp` (global install done, not loading in sessions — needs investigation)
+- Cloudflare MCP: `https://mcp.cloudflare.com/mcp` ✅ working
+- AWS: CLI configured and working; Billing MCP (`uvx awslabs.cost-analysis-mcp-server@latest`) not yet loading — needs `uv` installed

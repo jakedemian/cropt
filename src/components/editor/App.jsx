@@ -346,7 +346,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col w-full h-full bg-[#24272f]">
+    <div className="flex flex-col w-full h-full overflow-hidden bg-[#24272f]">
       <TopBar
         canvasResizeMode={canvasResizeMode}
         canvasSize={committedCanvasSize}

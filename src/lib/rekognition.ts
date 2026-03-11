@@ -1,5 +1,4 @@
-import { RekognitionClient, DetectModerationLabelsCommand } from '@aws-sdk/client-rekognition'
-import { FetchHttpHandler } from '@smithy/fetch-http-handler'
+import { AwsClient } from 'aws4fetch'
 
 const BLOCKED_CATEGORIES = [
   'Explicit Nudity',
@@ -13,22 +12,32 @@ const BLOCKED_CATEGORIES = [
 const CONFIDENCE_THRESHOLD = 90
 
 export async function moderateImage(imageBytes: Buffer): Promise<{ blocked: boolean; reason?: string }> {
-  const region = process.env.REKOGNITION_REGION
-  const accessKeyId = process.env.REKOGNITION_ACCESS_KEY_ID
-  const secretAccessKey = process.env.REKOGNITION_SECRET_ACCESS_KEY
-
-  const client = new RekognitionClient({
+  const region = process.env.REKOGNITION_REGION!
+  const aws = new AwsClient({
+    accessKeyId:     process.env.REKOGNITION_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.REKOGNITION_SECRET_ACCESS_KEY!,
     region,
-    credentials: { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey! },
-    requestHandler: new FetchHttpHandler(),
+    service:         'rekognition',
   })
 
-  const response = await client.send(new DetectModerationLabelsCommand({
-    Image:         { Bytes: imageBytes },
-    MinConfidence: CONFIDENCE_THRESHOLD,
-  }))
+  const res = await aws.fetch(`https://rekognition.${region}.amazonaws.com/`, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/x-amz-json-1.1',
+      'X-Amz-Target': 'RekognitionService.DetectModerationLabels',
+    },
+    body: JSON.stringify({
+      Image:         { Bytes: imageBytes.toString('base64') },
+      MinConfidence: CONFIDENCE_THRESHOLD,
+    }),
+  })
 
-  const labels = response.ModerationLabels ?? []
+  if (!res.ok) {
+    throw new Error(`Rekognition error: ${res.status} ${res.statusText}`)
+  }
+
+  const data = await res.json() as { ModerationLabels?: { Name?: string }[] }
+  const labels = data.ModerationLabels ?? []
   const blocked = labels.find((l) => BLOCKED_CATEGORIES.includes(l.Name ?? ''))
 
   if (blocked) {

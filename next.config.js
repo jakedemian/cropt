@@ -7,7 +7,7 @@ const withPWAConfig = withPWA({
 
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ['@aws-sdk/client-rekognition'],
+  serverExternalPackages: [],
 }
 
 export default withPWAConfig(nextConfig)

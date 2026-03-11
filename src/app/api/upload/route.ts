@@ -52,14 +52,9 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer())
 
   // 5. Moderation
-  try {
-    const moderation = await moderateImage(buffer)
-    if (moderation.blocked) {
-      return NextResponse.json({ error: 'Image was rejected by content moderation' }, { status: 422 })
-    }
-  } catch (err) {
-    // Moderation unavailable — log and allow upload rather than blocking the user
-    console.error('Rekognition moderation failed:', err)
+  const moderation = await moderateImage(buffer)
+  if (moderation.blocked) {
+    return NextResponse.json({ error: 'Image was rejected by content moderation' }, { status: 422 })
   }
 
   // 6. Dimensions

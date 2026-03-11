@@ -8,12 +8,19 @@ Currently `.env.local` points directly at the production Neon database. Split in
 ### DMCA Agent Registration
 Register Cropt as a DMCA agent with the US Copyright Office — one-time, ~$6 at copyright.gov/dmca-directory. Required for full safe harbor protection. Also set up `dmca@cropt.app` email.
 
-### MCP Integration
-Wire up MCP servers for Neon and AWS so Claude Code sessions can directly query usage, costs, and data in plain English. Cloudflare MCP is working. AWS CLI is configured and usable as a fallback for now.
+### Service Tooling & Visibility
 
-- Neon MCP: `https://mcp.neon.tech/mcp` (global install done, not loading in sessions — needs investigation)
-- Cloudflare MCP: `https://mcp.cloudflare.com/mcp` ✅ working
-- AWS: CLI configured and working; Billing MCP (`uvx awslabs.cost-analysis-mcp-server@latest`) not yet set up — needs `uv` installed
+| Service | CLI | MCP | Cost visibility |
+|---|---|---|---|
+| **Cloudflare R2** | — | ✅ Working | ✅ Yes, via MCP |
+| **Vercel** | ✅ Installed (token expires) | ❌ None | ❌ No |
+| **Neon** | ❌ None | ⚠️ Installed globally, never loads in sessions | ❌ No |
+| **AWS Rekognition** | ✅ Configured (locked-down IAM) | ❌ None | ❌ No — needs separate billing IAM user |
+
+**To fix:**
+- **Vercel** — Re-run `vercel login` when token expires. Cost/usage not queryable regardless.
+- **Neon MCP** — `https://mcp.neon.tech/mcp` — global install done, not loading in sessions. Needs investigation. Would enable querying upload counts, flagged content, etc. in chat.
+- **AWS billing** — Create a second read-only IAM user with Cost Explorer access, configure as second AWS CLI profile. Then `/audit-aws` can pull real cost data.
 
 ---
 

@@ -1,10 +1,10 @@
-# MemeCanvas — Claude Code Context
+# Cropt — Claude Code Context
 
 ## Project Overview
 
-MemeCanvas is a **mobile-first Progressive Web App (PWA)** for creating memes and image compositions. Users can import images, add text overlays, resize/crop/flip content, and export the final result. The app is designed to work seamlessly as an installed PWA on Android and iOS, with full desktop browser support.
+Cropt is a **mobile-first Progressive Web App (PWA)** for creating and sharing memes. Users create memes in the editor, optionally upload them to Cropt, and share a link. The landing page is a public feed of hosted memes.
 
-**Live URL:** https://meme-canvas-gamma.vercel.app
+**Live URL:** https://cropt.app
 
 ---
 
@@ -12,12 +12,29 @@ MemeCanvas is a **mobile-first Progressive Web App (PWA)** for creating memes an
 
 | Layer | Technology |
 |-------|------------|
-| Build | Vite 7 |
-| Framework | React 19 |
-| Styling | Tailwind CSS v4 (via `@tailwindcss/vite`) |
+| Framework | Next.js 15 (App Router) |
+| Language | JavaScript (JSX) for editor, TypeScript for app/lib |
+| Styling | Tailwind CSS v4 (via `@tailwindcss/postcss`) |
 | Canvas | Konva.js + react-konva |
-| PWA | vite-plugin-pwa |
+| PWA | @ducanh2912/next-pwa |
+| Database | Neon (serverless Postgres) + Drizzle ORM |
+| Storage | Cloudflare R2 (S3-compatible) |
+| Moderation | AWS Rekognition |
+| IDs | nanoid |
 | Hosting | Vercel |
+
+---
+
+## Routes
+
+| Route | Description |
+|-------|-------------|
+| `/` | Feed — SSR chronological grid of hosted memes |
+| `/create` | Editor — client-only, dynamic import with `ssr: false` |
+| `/m/[id]` | Viewer — SSR, OG tags, copy link, report |
+| `/dmca` | DMCA policy + takedown form |
+| `/api/upload` | POST — receive image, moderate, store, return URL |
+| `/api/report` | POST — flag an image for review |
 
 ---
 
@@ -31,6 +48,7 @@ MemeCanvas is a **mobile-first Progressive Web App (PWA)** for creating memes an
 - **Layer panel** — Reorder nodes via drag-and-drop; select/delete from panel
 - **Undo/Redo** — Up to 50 steps of history
 - **Export** — Save as PNG or copy to clipboard
+- **Upload & Share** — Upload finished meme to Cropt, get a shareable link
 - **Session persistence** — Auto-saves to localStorage; restores on reload
 - **Leave warning** — Prompts before losing unsaved work (back button, browser close)
 - **PWA** — Installable, standalone display, portrait orientation
@@ -49,6 +67,7 @@ MemeCanvas is a **mobile-first Progressive Web App (PWA)** for creating memes an
 | **Resize mode** | UI state where canvas edge handles are shown |
 | **Text place mode** | UI state where next tap places a new text node |
 | **Text edit mode** | Inline editing a text node via HTML textarea overlay |
+| **Upload** | A hosted meme — row in `uploads` table + file in R2 |
 
 ---
 
@@ -56,31 +75,52 @@ MemeCanvas is a **mobile-first Progressive Web App (PWA)** for creating memes an
 
 ```
 src/
-├── App.jsx                  # Main component; orchestrates all state and UI
-├── main.jsx                 # React entry point
-├── index.css                # Tailwind imports + global styles
+├── app/
+│   ├── globals.css              # Tailwind imports + global styles
+│   ├── layout.tsx               # Root layout — fonts, PWA meta, head tags
+│   ├── page.tsx                 # Redirects / → /create (until feed is built)
+│   ├── create/
+│   │   └── page.tsx             # Editor shell — dynamic import ssr:false
+│   ├── m/[id]/
+│   │   └── page.tsx             # Viewer — SSR + OG tags
+│   ├── dmca/
+│   │   └── page.tsx             # DMCA policy
+│   └── api/
+│       ├── upload/route.ts      # POST /api/upload
+│       └── report/route.ts      # POST /api/report
 ├── components/
-│   ├── Canvas/
-│   │   ├── CanvasStage.jsx      # Konva Stage + Layer; handles pan/zoom
-│   │   ├── ImageNode.jsx        # Renders an image node
-│   │   ├── TextNode.jsx         # Renders a text node
-│   │   ├── TransformWrapper.jsx # Wraps node with Transformer when selected
-│   │   ├── CropOverlay.jsx      # Crop rectangle UI
-│   │   ├── CanvasResizeHandles.jsx # Edge/corner drag handles for canvas resize
-│   │   └── TextEditOverlay.jsx  # HTML textarea overlay for inline text editing
-│   ├── Toolbar/
-│   │   ├── TopBar.jsx           # Header with title, undo/redo, export, overflow menu
-│   │   └── BottomToolbar.jsx    # Context-sensitive bottom bar (add image, text, layers, etc.)
-│   └── LayerPanel/
-│       ├── LayerPanel.jsx       # Slide-out layer list
-│       └── LayerItem.jsx        # Individual layer row (thumbnail, name, actions)
-└── hooks/
-    ├── useCanvasState.js        # Core state: nodes, canvas size, background, history
-    ├── useImageImport.js        # Paste, drop, file picker handlers
-    ├── useExport.js             # Export to PNG / copy to clipboard
-    ├── useInstallPrompt.js      # PWA install banner logic
-    ├── useSessionPersistence.js # Auto-save/restore to localStorage
-    └── useBackGuard.js          # History API back-button leave warning
+│   ├── editor/                  # All editor code (client-only)
+│   │   ├── App.jsx              # Main editor component
+│   │   ├── Canvas/
+│   │   │   ├── CanvasStage.jsx
+│   │   │   ├── ImageNode.jsx
+│   │   │   ├── TextNode.jsx
+│   │   │   ├── TransformWrapper.jsx
+│   │   │   ├── CropOverlay.jsx
+│   │   │   ├── CanvasResizeHandles.jsx
+│   │   │   └── TextEditOverlay.jsx
+│   │   ├── Toolbar/
+│   │   │   ├── TopBar.jsx
+│   │   │   └── BottomToolbar.jsx
+│   │   ├── LayerPanel/
+│   │   │   ├── LayerPanel.jsx
+│   │   │   └── LayerItem.jsx
+│   │   ├── hooks/
+│   │   │   ├── useCanvasState.js
+│   │   │   ├── useImageImport.js
+│   │   │   ├── useExport.js
+│   │   │   ├── useInstallPrompt.js
+│   │   │   ├── useSessionPersistence.js
+│   │   │   └── useBackGuard.js
+│   │   └── utils/
+│   │       └── canvasUtils.js
+│   ├── feed/                    # Feed components (Phase 6)
+│   └── viewer/                  # Viewer components (Phase 5)
+└── lib/
+    ├── schema.ts                # Drizzle schema — uploads table
+    ├── db.ts                    # Neon + Drizzle client
+    ├── r2.ts                    # Cloudflare R2 S3 client
+    └── rekognition.ts           # AWS Rekognition moderation client
 ```
 
 ---
@@ -88,11 +128,32 @@ src/
 ## Development Commands
 
 ```bash
-npm run dev      # Start Vite dev server (hot reload)
-npm run build    # Production build to dist/
-npm run preview  # Preview production build locally
-npm run lint     # ESLint
+npm run dev          # Start Next.js dev server (hot reload)
+npm run build        # Production build
+npm run start        # Start production server locally
+npm run lint         # ESLint
+npm run db:generate  # Generate Drizzle migration files
+npm run db:migrate   # Run migrations against Neon (loads .env.local)
+npm run db:studio    # Open Drizzle Studio (DB browser)
 ```
+
+---
+
+## Environment Variables
+
+See `.env.local.example` for all required variables. Never commit `.env.local`.
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Neon Postgres connection string |
+| `R2_ACCOUNT_ID` | Cloudflare account ID |
+| `R2_ACCESS_KEY_ID` | R2 API token access key |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret |
+| `R2_BUCKET_NAME` | `cropt-uploads` |
+| `R2_PUBLIC_URL` | Public R2 URL for serving images |
+| `AWS_ACCESS_KEY_ID` | IAM user key for Rekognition |
+| `AWS_SECRET_ACCESS_KEY` | IAM user secret for Rekognition |
+| `AWS_REGION` | `us-east-1` |
 
 ---
 
@@ -100,15 +161,12 @@ npm run lint     # ESLint
 
 **Automatic:** Merging a PR to `main` triggers a production deployment via Vercel's GitHub integration.
 
-**Manual:** Deploy from CLI with:
-
+**Manual:**
 ```bash
 vercel --prod
 ```
 
-**Production URL:** https://meme-canvas-gamma.vercel.app
-
-**Note:** The commit author email must be verified in both your GitHub account (Settings → Emails) and Vercel account (Settings → Emails) for automatic deployments to work.
+**Production URL:** https://cropt.app
 
 ---
 
@@ -126,33 +184,33 @@ Current version is in `package.json` and displayed in the app's overflow menu (`
 ## Known Limitations
 
 1. **Export canvas blink** — Brief flash when exporting due to transform reset; proper fix requires offscreen canvas rendering.
-
-2. **Desktop PWA Cmd+Q** — macOS force-quit bypasses `beforeunload`, so leave warning doesn't appear. OS-level limitation.
-
-3. **iOS PWA swipe-close** — Cannot intercept the swipe-to-close gesture on iOS PWA. OS-level limitation.
-
+2. **Desktop PWA Cmd+Q** — macOS force-quit bypasses `beforeunload`. OS-level limitation.
+3. **iOS PWA swipe-close** — Cannot intercept swipe-to-close gesture. OS-level limitation.
 4. **Crop requires rotation=0** — Cropping a rotated image is disabled; user must flatten rotation first.
 
 ---
 
 ## Architecture Notes
 
+### Editor (Client-Only)
+All editor code lives in `src/components/editor/` and is loaded via `dynamic(..., { ssr: false })` at `/create`. Konva never runs on the server.
+
 ### State Management
 All canvas state lives in `useCanvasState` hook — nodes array, canvas size, background, selection, history stacks. No external state library.
 
 ### History
-Undo/redo uses snapshot-based history stored in refs (to avoid re-renders). `pushHistory()` captures state before mutations; `pushSnapshot()` accepts explicit snapshots for cases where the pre-mutation state is already known.
+Undo/redo uses snapshot-based history stored in refs. `pushHistory()` captures state before mutations; `pushSnapshot()` accepts explicit snapshots.
 
 ### Coordinate System
 - **Stage coordinates** — Pan/zoom transformed; what the user sees
 - **Canvas coordinates** — Logical 1:1 coordinates; where nodes actually live
 - Conversion: `stageToCanvas(point, stageViewport)`
 
-### Session Persistence
-`useSessionPersistence` debounces saves (1500ms) to localStorage. Blob URLs are converted to data URLs before storage. New Document clears saved state.
+### Upload Flow
+`POST /api/upload` → validate → Rekognition moderation → nanoid → R2 upload → DB insert → return share URL.
 
-### Back-Button Guard
-`useBackGuard` pushes a guard state via History API. On `popstate`, if content exists, it re-pushes the guard and shows a custom "Leave MemeCanvas?" dialog. `confirmLeave()` sets flags and calls `history.back()` to actually leave.
+### Session Persistence
+`useSessionPersistence` debounces saves (1500ms) to localStorage. Blob URLs are converted to data URLs before storage.
 
 ---
 
@@ -161,9 +219,3 @@ Undo/redo uses snapshot-based history stored in refs (to avoid re-renders). `pus
 - No automated test suite yet
 - Manual testing on: Chrome (desktop), Safari (iOS PWA), Chrome (Android PWA)
 - Konva canvas interactions cannot be automated via typical DOM testing
-
----
-
-## Future Considerations
-
-See `TODO.md` for the full backlog.

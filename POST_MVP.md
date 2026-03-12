@@ -3,7 +3,19 @@
 ## High Priority
 
 ### Environment Splitting
-Currently `.env.local` points directly at the production Neon database. Split into at least local dev vs prod environments before any serious development traffic hits the DB.
+
+Currently `.env.local` points directly at all production services. Local development writes real uploads to the production DB and R2 bucket. This needs to be split before doing any significant local dev work.
+
+**What needs a separate dev instance:**
+- **Neon** — Create a second project (e.g. `cropt-dev`) and run `npm run db:migrate` against it. Free tier supports multiple projects.
+- **Cloudflare R2** — Create a second bucket (e.g. `cropt-uploads-dev`). Enable public access and note the new public URL.
+- **AWS Rekognition** — Same IAM user and credentials are fine; Rekognition is stateless and has no per-environment concept.
+
+**How to wire it up:**
+- Keep `.env.local` for local dev (pointing at dev Neon + dev R2 bucket)
+- Add production env vars only in the Vercel dashboard (already done)
+- Update Bitwarden with two entries: `Cropt .env.local (dev)` and `Cropt .env.local (prod)`
+- Update `DEV_SETUP.md` to reference the dev Bitwarden entry once this is done
 
 ### DMCA Agent Registration
 Register Cropt as a DMCA agent with the US Copyright Office — one-time, ~$6 at copyright.gov/dmca-directory. Required for full safe harbor protection. Also set up `dmca@cropt.app` email.

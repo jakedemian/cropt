@@ -1,18 +1,25 @@
 # Audit: Cloudflare R2 (Object Storage)
 
-Use the Cloudflare MCP tools to query the `cropt-uploads` bucket. The account ID is `169edc09711adf69306f7e38b3feb48e`.
+Use the Cloudflare MCP `mcp__cloudflare__execute` tool to query the `cropt-uploads` bucket.
 
-Retrieve and report:
+Run the following code:
 
-1. Total number of objects in the `cropt-uploads` bucket
+```js
+async () => {
+  const bucket = await cloudflare.request({ method: "GET", path: `/accounts/${accountId}/r2/buckets/cropt-uploads` });
+  const objects = await cloudflare.request({ method: "GET", path: `/accounts/${accountId}/r2/buckets/cropt-uploads/objects`, query: { per_page: 1000 } });
+  return { bucket: bucket.result, objects: objects.result, object_count: objects.result_info };
+}
+```
+
+Report:
+1. Total number of objects
 2. Total storage used (sum of object sizes)
-3. Current month Class A operations (writes/uploads)
-4. Current month Class B operations (reads/downloads)
-5. Public bucket URL: `https://pub-d0c33e8c063445cb886045fa013b490e.r2.dev`
-6. Bucket location and storage class
+3. Bucket location and storage class
+4. Any anomalies (e.g. objects in R2 with no corresponding DB record)
 
-Use the Cloudflare MCP `execute` tool to call the R2 API endpoints:
-- Object list: `/accounts/{account_id}/r2/buckets/cropt-uploads/objects`
-- Usage/metrics if available via the API
+Note: Class A/B operation counts are not exposed via the R2 API — omit or note as unavailable.
 
-Present results as a clean report. Note if storage or operations are approaching free tier limits (10GB storage, 1M Class A ops, 10M Class B ops per month).
+After gathering results, **overwrite the `## Cloudflare R2` section in `AUDIT.md`** with a timestamped report. Preserve all other sections in the file exactly as they are.
+
+Free tier limits: 10 GB storage, 1M Class A ops/month, 10M Class B ops/month.

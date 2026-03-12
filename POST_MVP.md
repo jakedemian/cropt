@@ -22,24 +22,7 @@ Register Cropt as a DMCA agent with the US Copyright Office — one-time, ~$6 at
 
 ### Service Tooling & Visibility
 
-| Service | CLI | MCP | Cost visibility |
-|---|---|---|---|
-| **Cloudflare R2** | — | ✅ Working | ✅ Yes, via MCP |
-| **Vercel** | ✅ Installed (token expires) | ✅ Working | ❌ Not possible (API doesn't expose usage/cost) |
-| **Neon** | ⬜ Not set up | ⚠️ Installed globally, never loads in sessions | ⬜ Not set up (possible once MCP works) |
-| **AWS Rekognition** | ✅ Configured (locked-down IAM) | ⬜ Not set up | ⬜ Not set up (needs billing IAM user) |
-
-**To fix:**
-- **Vercel** — MCP working. Re-run `/mcp` to re-authenticate when token expires. Cost/usage data not exposed by Vercel's API regardless of access method — check https://vercel.com/dashboard manually.
-- **Neon MCP** — `https://mcp.neon.tech/mcp` — global install done, not loading in sessions. Needs investigation. Would enable querying upload counts, flagged content, etc. in chat.
-- **AWS billing** — Create a second read-only IAM user with Cost Explorer access, configure as second AWS CLI profile. Then `/audit-aws` can pull real cost data.
-
-**Vercel audit (2026-03-12):**
-- Plan: Hobby
-- Production: `cropt.app` — READY, Node.js 24.x, 3 serverless functions
-- Last deploy: 2026-03-09 (docs commit, git push to main)
-- No current build errors (1 ERROR in history from the aws4fetch migration, immediately fixed)
-- Cost/usage (bandwidth, function hours): not queryable via API — check Vercel dashboard manually for monthly usage against Hobby limits (100GB bandwidth, 6,000 function-hours/month)
+See `AUDIT.md` for the service tooling table and latest audit results. Run `/audit` to refresh all services or `/audit-neon`, `/audit-r2`, `/audit-aws`, `/audit-vercel` individually.
 
 ---
 

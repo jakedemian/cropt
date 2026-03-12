@@ -1,24 +1,18 @@
 # Audit: Vercel (Hosting)
 
-Use the Vercel CLI via Bash to query deployment and usage data.
+Use the Vercel MCP tools to query deployment data. If the MCP is not authenticated, instruct the user to run `/mcp` to trigger the OAuth flow.
 
 Run the following:
 
-1. List recent deployments for the cropt project:
-   `vercel ls cropt --token $VERCEL_TOKEN` or just `vercel ls` if already authenticated
-
-2. Inspect the current production deployment:
-   `vercel inspect --prod`
-
-3. Check project info:
-   `vercel project ls`
-
-If the Vercel CLI is not authenticated, note that and instruct the user to run `vercel login` in their terminal.
+1. List recent deployments: `mcp__vercel__list_deployments` with projectId `cropt`, limit 10
+2. Get project info: `mcp__vercel__get_project` with projectId `cropt`
 
 Report:
 - Current production deployment URL and status
 - Time of last deploy and what triggered it (git push, manual, etc.)
 - Any failed or errored deployments in the last 10
-- Current plan (Hobby/Pro) and any usage limit warnings
+- Current plan and node version
 
-Note: Vercel's Hobby plan includes 100GB bandwidth and 6,000 serverless function execution hours/month for free. Flag if approaching limits.
+Note: Cost/usage data (bandwidth, function hours) is not queryable via the Vercel API. Direct the user to check https://vercel.com/dashboard manually for Hobby plan limits (100GB bandwidth, 6,000 function-hours/month).
+
+After gathering results, **overwrite the `## Vercel` section in `AUDIT.md`** with a timestamped report. Preserve all other sections in the file exactly as they are.

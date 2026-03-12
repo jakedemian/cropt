@@ -29,7 +29,9 @@ npm install
 cp .env.local.example .env.local
 ```
 
-Fill in `.env.local` with the real values. Find them at:
+All secrets are stored in Bitwarden as **`Cropt .env.local`** — the note contains the full contents of `.env.local`. Copy and paste from there directly.
+
+If you need to find individual values manually:
 
 | Variable | Where to find it |
 |---|---|

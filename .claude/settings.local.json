@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx vite build)",
       "Bash(find /d/Projects/meme-canvas/src -type f \\\\\\( -name \"*.jsx\" -o -name \"*.js\" \\\\\\) 2>/dev/null | sort)",
-      "Bash(cd D:/Projects/cropt && npm run build 2>&1)"
+      "Bash(cd D:/Projects/cropt && npm run build 2>&1)",
+      "WebSearch"
     ]
   }
 }

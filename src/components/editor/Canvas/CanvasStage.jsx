@@ -68,6 +68,7 @@ export default function CanvasStage({
   marqueeNodeId,
   onMarqueeStart,
   onMarqueeEnd,
+  onMarqueeReady,   // (rect | null) → called whenever selection is finalized or cleared
 }) {
   const containerRef = useRef(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
@@ -166,6 +167,9 @@ export default function CanvasStage({
   useEffect(() => { onMarqueeStartRef.current = onMarqueeStart }, [onMarqueeStart])
   useEffect(() => { onMarqueeEndRef.current   = onMarqueeEnd   }, [onMarqueeEnd])
 
+  const onMarqueeReadyRef  = useRef(onMarqueeReady)
+  useEffect(() => { onMarqueeReadyRef.current = onMarqueeReady }, [onMarqueeReady])
+
   const marqueePhaseRef    = useRef('idle') // 'idle' | 'drawing' | 'ready' | 'moving'
   const marqDrawStartRef   = useRef(null)   // { x, y } canvas point where drag began
   const marqMoveStartRef   = useRef(null)   // { pt: {x,y}, rect: {x,y,width,height} }
@@ -218,6 +222,7 @@ export default function CanvasStage({
       stampMarqueeFloat()
       setMarqueeRect(null)
       marqueePhaseRef.current = 'idle'
+      onMarqueeReadyRef.current(null)
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -274,6 +279,7 @@ export default function CanvasStage({
     } else {
       // Begin drawing a new selection (stamp any existing float first)
       stampMarqueeFloat()
+      onMarqueeReadyRef.current(null)
       e.currentTarget.setPointerCapture(e.pointerId)
       marqueePhaseRef.current = 'drawing'
       marqDrawStartRef.current = pt
@@ -313,12 +319,15 @@ export default function CanvasStage({
       if (!rect || rect.width < 2 || rect.height < 2) {
         setMarqueeRect(null)
         marqueePhaseRef.current = 'idle'
+        onMarqueeReadyRef.current(null)
       } else {
         marqueePhaseRef.current = 'ready'
+        onMarqueeReadyRef.current(rect)
       }
     } else if (phase === 'moving') {
       stampMarqueeFloat()
       marqueePhaseRef.current = 'ready'
+      onMarqueeReadyRef.current(marqueeRectRef.current)
     }
   }, [stampMarqueeFloat])
 

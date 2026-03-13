@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Check, ImagePlus, Layers, Maximize, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect } from 'lucide-react'
+import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect } from 'lucide-react'
 
 const BG_OPTIONS = [
   { value: '#ffffff', title: 'White',       style: { background: '#fff', border: '1.5px solid rgba(255,255,255,0.2)' } },
@@ -35,6 +35,8 @@ export default function BottomToolbar({
   onOpacityChange,
   onSetBackground,
   onToggleLayerPanel,
+  marqueeSelection,
+  onCropToSelection,
   onEnterResize,
   onConfirmResize,
   onCancelResize,
@@ -260,15 +262,25 @@ export default function BottomToolbar({
         </button>
       )}
 
-      {/* Resize + Canvas dimensions */}
+      {/* Resize + Crop */}
       {!isDrawing && (
-        <button
-          onClick={onEnterResize}
-          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
-          title="Resize canvas"
-        >
-          <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
-        </button>
+        <>
+          <button
+            onClick={onEnterResize}
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+            title="Resize canvas"
+          >
+            <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
+          </button>
+          <button
+            onClick={onCropToSelection}
+            disabled={!marqueeSelection}
+            title={marqueeSelection ? 'Crop canvas to selection' : 'Draw a selection first'}
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Crop size={14} /> <span className="hidden sm:inline">Crop</span>
+          </button>
+        </>
       )}
 
       {/* Background picker — visible when nothing is selected and not drawing */}

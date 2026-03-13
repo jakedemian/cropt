@@ -74,6 +74,53 @@ export async function cropImageToRect(node, cropRect) {
 }
 
 /**
+ * Crop a raster node to the given canvas bounds.
+ * Returns null if the node is entirely outside; returns the original node if
+ * it already fits; otherwise returns a new node with a cropped dataUrl.
+ */
+export async function cropRasterToCanvas(node, canvasWidth, canvasHeight) {
+  if (node.type !== 'raster') return node
+
+  const ix      = Math.max(0, node.x)
+  const iy      = Math.max(0, node.y)
+  const iRight  = Math.min(canvasWidth,  node.x + node.width)
+  const iBottom = Math.min(canvasHeight, node.y + node.height)
+
+  if (iRight <= ix || iBottom <= iy) return null
+
+  const iw = iRight - ix
+  const ih = iBottom - iy
+
+  // Already fully inside — nothing to do.
+  if (ix === node.x && iy === node.y && Math.round(iw) === node.width && Math.round(ih) === node.height) {
+    return node
+  }
+
+  const output = document.createElement('canvas')
+  output.width  = Math.round(iw)
+  output.height = Math.round(ih)
+
+  if (node.dataUrl) {
+    const img = await loadImageElement(node.dataUrl)
+    // node.dataUrl pixel (0,0) = canvas position (node.x, node.y),
+    // so the intersection starts at node-local offset (ix - node.x, iy - node.y).
+    output.getContext('2d').drawImage(img,
+      ix - node.x, iy - node.y, iw, ih,
+      0, 0, Math.round(iw), Math.round(ih),
+    )
+  }
+
+  return {
+    ...node,
+    x:      ix,
+    y:      iy,
+    width:  Math.round(iw),
+    height: Math.round(ih),
+    dataUrl: output.toDataURL('image/png'),
+  }
+}
+
+/**
  * Load an HTMLImageElement from a src string (data URL or URL).
  */
 export function loadImageElement(src) {

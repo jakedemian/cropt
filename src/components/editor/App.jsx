@@ -10,7 +10,7 @@ import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { useSessionPersistence } from './hooks/useSessionPersistence'
 import { useBackGuard } from './hooks/useBackGuard'
 import { useDocumentHistory } from './hooks/useDocumentHistory'
-import { cropNodeToCanvas, cropImageToRect } from './utils/canvasUtils'
+import { cropNodeToCanvas, cropRasterToCanvas, cropImageToRect } from './utils/canvasUtils'
 import CanvasStage from './Canvas/CanvasStage'
 import TopBar from './Toolbar/TopBar'
 import BottomToolbar from './Toolbar/BottomToolbar'
@@ -222,6 +222,40 @@ export default function App() {
   // Snapshot of state (nodes, canvasSize, canvasBackground) taken before editing
   // started — used to push history on confirm, or restore on cancel.
   const [editingOrigState, setEditingOrigState] = useState(null)
+
+  // ── Marquee selection (canvas-level crop target) ───────────────────────────
+  const [marqueeSelection, setMarqueeSelection] = useState(null) // { x, y, width, height } | null
+
+  // Clear when switching away from the marquee tool
+  useEffect(() => {
+    if (activeTool !== 'marquee') setMarqueeSelection(null)
+  }, [activeTool])
+
+  const handleCropToSelection = useCallback(async () => {
+    if (!marqueeSelection) return
+    const { x: sx, y: sy, width: sw, height: sh } = marqueeSelection
+    const newW = Math.round(sw)
+    const newH = Math.round(sh)
+    if (newW < 1 || newH < 1) return
+
+    pushSnapshot({ nodes, canvasSize, canvasBackground })
+
+    // Shift every node by (-sx, -sy) then clip to the new bounds
+    const shifted = nodes.map((n) => ({ ...n, x: n.x - sx, y: n.y - sy }))
+    const results = await Promise.all(
+      shifted.map((n) => {
+        if (n.type === 'image')  return cropNodeToCanvas(n, newW, newH)
+        if (n.type === 'raster') return cropRasterToCanvas(n, newW, newH)
+        return n
+      })
+    )
+    const valid = results.filter(Boolean)
+    setCanvasSize({ width: newW, height: newH })
+    replaceNodes(valid)
+    if (selectedNodeId && !valid.find((n) => n.id === selectedNodeId)) selectNode(null)
+    setActiveTool('select')
+    setMarqueeSelection(null)
+  }, [marqueeSelection, nodes, canvasSize, canvasBackground, pushSnapshot, setCanvasSize, replaceNodes, selectedNodeId, selectNode])
 
   // ── New document ───────────────────────────────────────────────────────────
   const [confirmingNew, setConfirmingNew] = useState(false)
@@ -587,6 +621,7 @@ export default function App() {
             marqueeNodeId={activeTool === 'marquee' && selectedNode?.type === 'raster' ? selectedNodeId : null}
             onMarqueeStart={pushHistory}
             onMarqueeEnd={(id, dataUrl) => updateNode(id, { dataUrl })}
+            onMarqueeReady={setMarqueeSelection}
           />
 
           {/* Mobile layer panel overlay (desktop uses sidebar) */}
@@ -673,6 +708,8 @@ export default function App() {
         onOpacityChange={(v) => selectedNode && updateNode(selectedNode.id, { opacity: v })}
         onSetBackground={(bg) => { pushHistory(); setCanvasBackground(bg) }}
         onToggleLayerPanel={() => setShowLayerPanel((p) => !p)}
+        marqueeSelection={marqueeSelection}
+        onCropToSelection={handleCropToSelection}
         onEnterResize={handleEnterResize}
         onConfirmResize={handleConfirmResize}
         onCancelResize={handleCancelResize}

@@ -63,6 +63,11 @@ export default function CanvasStage({
   brushSize,
   onDrawStart,
   onDrawEnd,
+  // marquee-mode props
+  marqueeMode,
+  marqueeNodeId,
+  onMarqueeStart,
+  onMarqueeEnd,
 }) {
   const containerRef = useRef(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
@@ -149,6 +154,173 @@ export default function CanvasStage({
   const isDrawingRef = useRef(false)
   const lastDrawPt   = useRef(null)
   const [brushCursorPos, setBrushCursorPos] = useState(null)
+
+  // ── Marquee tool ───────────────────────────────────────────────────────────
+  const [marqueeRect, setMarqueeRect] = useState(null)     // canvas coords { x, y, width, height }
+  const marqueeRectRef    = useRef(null)
+  const marqueeNodeIdRef  = useRef(marqueeNodeId)
+  const onMarqueeStartRef = useRef(onMarqueeStart)
+  const onMarqueeEndRef   = useRef(onMarqueeEnd)
+  useEffect(() => { marqueeRectRef.current   = marqueeRect   }, [marqueeRect])
+  useEffect(() => { marqueeNodeIdRef.current = marqueeNodeId }, [marqueeNodeId])
+  useEffect(() => { onMarqueeStartRef.current = onMarqueeStart }, [onMarqueeStart])
+  useEffect(() => { onMarqueeEndRef.current   = onMarqueeEnd   }, [onMarqueeEnd])
+
+  const marqueePhaseRef    = useRef('idle') // 'idle' | 'drawing' | 'ready' | 'moving'
+  const marqDrawStartRef   = useRef(null)   // { x, y } canvas point where drag began
+  const marqMoveStartRef   = useRef(null)   // { pt: {x,y}, rect: {x,y,width,height} }
+  const marqFloatRef       = useRef(null)   // HTMLCanvasElement — cut pixels
+  const marqFloatPosRef    = useRef(null)   // { x, y } current canvas pos of floating content
+  const [marqFloatDisplay, setMarqFloatDisplay] = useState(null) // { dataUrl, x, y, width, height }
+
+  // Stamp floating content onto the source canvas and notify parent
+  const stampMarqueeFloat = useCallback(() => {
+    const nodeId = marqueeNodeIdRef.current
+    const float  = marqFloatRef.current
+    const pos    = marqFloatPosRef.current
+    if (!float || !pos || !nodeId) return
+    const canvas = rasterCanvasRef.current[nodeId]
+    if (!canvas) return
+    canvas.getContext('2d').drawImage(float, pos.x, pos.y)
+    const dataUrl = canvas.toDataURL('image/png')
+    rasterDataUrlCache.current[nodeId] = dataUrl
+    onMarqueeEndRef.current(nodeId, dataUrl)
+    stageRef.current?.batchDraw()
+    marqFloatRef.current    = null
+    marqFloatPosRef.current = null
+    setMarqFloatDisplay(null)
+  }, [stageRef])
+
+  // Stamp + clear when marquee tool is deactivated
+  useEffect(() => {
+    if (marqueeMode) return
+    stampMarqueeFloat()  // eslint-disable-line react-hooks/set-state-in-effect
+    setMarqueeRect(null) // eslint-disable-line react-hooks/set-state-in-effect
+    marqueePhaseRef.current = 'idle'
+  }, [marqueeMode]) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs only on marqueeMode change
+
+  // Clear (discard float) when the target node changes
+  useEffect(() => {
+    if (marqFloatRef.current || marqueeRectRef.current) {
+      marqFloatRef.current    = null
+      marqFloatPosRef.current = null
+      setMarqFloatDisplay(null) // eslint-disable-line react-hooks/set-state-in-effect
+      setMarqueeRect(null)
+      marqueePhaseRef.current = 'idle'
+    }
+  }, [marqueeNodeId])
+
+  // Escape to deselect while marquee tool is active
+  useEffect(() => {
+    if (!marqueeMode) return
+    const handler = (e) => {
+      if (e.key !== 'Escape') return
+      stampMarqueeFloat()
+      setMarqueeRect(null)
+      marqueePhaseRef.current = 'idle'
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [marqueeMode, stampMarqueeFloat])
+
+  // Convert screen → canvas coordinates (not node-relative)
+  const getMarqueePoint = useCallback((e) => {
+    if (!containerRef.current) return null
+    const rect = containerRef.current.getBoundingClientRect()
+    const vp   = stageViewportRef.current
+    return {
+      x: (e.clientX - rect.left - vp.x) / vp.scale,
+      y: (e.clientY - rect.top  - vp.y) / vp.scale,
+    }
+  }, [])
+
+  const handleMarqueePointerDown = useCallback((e) => {
+    const pt   = getMarqueePoint(e)
+    if (!pt) return
+    const rect  = marqueeRectRef.current
+    const phase = marqueePhaseRef.current
+
+    const insideSelection =
+      phase === 'ready' && rect &&
+      pt.x >= rect.x && pt.x <= rect.x + rect.width &&
+      pt.y >= rect.y && pt.y <= rect.y + rect.height
+
+    if (insideSelection) {
+      // Begin moving the selected pixels
+      const nodeId = marqueeNodeIdRef.current
+      const canvas = rasterCanvasRef.current[nodeId]
+      if (!canvas) return  // can't move pixels without a raster layer
+
+      e.currentTarget.setPointerCapture(e.pointerId)
+      onMarqueeStartRef.current()  // push history before cut
+      marqueePhaseRef.current = 'moving'
+      marqMoveStartRef.current = { pt, rect }
+
+      const fx = Math.round(rect.x), fy = Math.round(rect.y)
+      const fw = Math.round(rect.width), fh = Math.round(rect.height)
+      if (fw < 1 || fh < 1) return
+
+      // Cut pixels from source canvas
+      const float = document.createElement('canvas')
+      float.width  = fw
+      float.height = fh
+      float.getContext('2d').drawImage(canvas, fx, fy, fw, fh, 0, 0, fw, fh)
+      canvas.getContext('2d').clearRect(fx, fy, fw, fh)
+      stageRef.current?.batchDraw()
+
+      marqFloatRef.current    = float
+      marqFloatPosRef.current = { x: fx, y: fy }
+      setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fx, y: fy, width: fw, height: fh })
+    } else {
+      // Begin drawing a new selection (stamp any existing float first)
+      stampMarqueeFloat()
+      e.currentTarget.setPointerCapture(e.pointerId)
+      marqueePhaseRef.current = 'drawing'
+      marqDrawStartRef.current = pt
+      setMarqueeRect(null)
+    }
+  }, [getMarqueePoint, stageRef, stampMarqueeFloat])
+
+  const handleMarqueePointerMove = useCallback((e) => {
+    const pt    = getMarqueePoint(e)
+    if (!pt) return
+    const phase = marqueePhaseRef.current
+
+    if (phase === 'drawing') {
+      const start = marqDrawStartRef.current
+      if (!start) return
+      setMarqueeRect({
+        x:      Math.min(start.x, pt.x),
+        y:      Math.min(start.y, pt.y),
+        width:  Math.abs(pt.x - start.x),
+        height: Math.abs(pt.y - start.y),
+      })
+    } else if (phase === 'moving') {
+      const ms = marqMoveStartRef.current
+      if (!ms) return
+      const nx = Math.round(ms.rect.x + (pt.x - ms.pt.x))
+      const ny = Math.round(ms.rect.y + (pt.y - ms.pt.y))
+      marqFloatPosRef.current = { x: nx, y: ny }
+      setMarqFloatDisplay((prev) => prev ? { ...prev, x: nx, y: ny } : prev)
+      setMarqueeRect({ x: nx, y: ny, width: ms.rect.width, height: ms.rect.height })
+    }
+  }, [getMarqueePoint])
+
+  const handleMarqueePointerUp = useCallback(() => {
+    const phase = marqueePhaseRef.current
+    if (phase === 'drawing') {
+      const rect = marqueeRectRef.current
+      if (!rect || rect.width < 2 || rect.height < 2) {
+        setMarqueeRect(null)
+        marqueePhaseRef.current = 'idle'
+      } else {
+        marqueePhaseRef.current = 'ready'
+      }
+    } else if (phase === 'moving') {
+      stampMarqueeFloat()
+      marqueePhaseRef.current = 'ready'
+    }
+  }, [stampMarqueeFloat])
 
   const getDrawPoint = useCallback((e) => {
     if (!containerRef.current) return null
@@ -359,7 +531,7 @@ export default function CanvasStage({
     [selectNode, stageRef, textPlaceMode]
   )
 
-  const isInteractive = !canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId && !drawMode
+  const isInteractive = !canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode
 
   // Find the node currently being edited (for the overlay)
   const editingNode = editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null
@@ -376,7 +548,7 @@ export default function CanvasStage({
             y={stageViewport.y}
             scaleX={stageViewport.scale}
             scaleY={stageViewport.scale}
-            draggable={!canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId && !drawMode}
+            draggable={!canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode}
             onDragEnd={handleStageDragEnd}
             onWheel={canvasResizeMode || cropMode || drawMode ? undefined : handleWheel}
             onTouchMove={canvasResizeMode || cropMode || drawMode ? undefined : handleTouchMove}
@@ -525,6 +697,62 @@ export default function CanvasStage({
                   }}
                 />
               )}
+            </div>
+          )}
+
+          {/* DOM overlay: marquee selection tool */}
+          {marqueeMode && (
+            <div
+              className="absolute inset-0"
+              style={{ cursor: 'crosshair', zIndex: 10, touchAction: 'none' }}
+              onPointerDown={handleMarqueePointerDown}
+              onPointerMove={handleMarqueePointerMove}
+              onPointerUp={handleMarqueePointerUp}
+              onPointerCancel={handleMarqueePointerUp}
+            >
+              {/* Floating pixels being dragged */}
+              {marqFloatDisplay && (
+                <img
+                  src={marqFloatDisplay.dataUrl}
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    left:   marqFloatDisplay.x * stageViewport.scale + stageViewport.x,
+                    top:    marqFloatDisplay.y * stageViewport.scale + stageViewport.y,
+                    width:  marqFloatDisplay.width  * stageViewport.scale,
+                    height: marqFloatDisplay.height * stageViewport.scale,
+                    imageRendering: 'pixelated',
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+
+              {/* Selection rectangle — marching ants */}
+              {marqueeRect && (() => {
+                const sx = marqueeRect.x      * stageViewport.scale + stageViewport.x
+                const sy = marqueeRect.y      * stageViewport.scale + stageViewport.y
+                const sw = Math.max(1, marqueeRect.width  * stageViewport.scale)
+                const sh = Math.max(1, marqueeRect.height * stageViewport.scale)
+                return (
+                  <svg
+                    style={{ position: 'absolute', left: sx, top: sy, width: sw, height: sh, overflow: 'visible', pointerEvents: 'none' }}
+                  >
+                    {/* Dark shadow for contrast on light backgrounds */}
+                    <rect x={0.5} y={0.5} width={sw - 1} height={sh - 1}
+                      fill="rgba(255,255,255,0.06)"
+                      stroke="rgba(0,0,0,0.55)" strokeWidth={2}
+                      strokeDasharray="6 4"
+                    />
+                    {/* Animated white dashes */}
+                    <rect x={0.5} y={0.5} width={sw - 1} height={sh - 1}
+                      fill="none"
+                      stroke="white" strokeWidth={1.5}
+                      strokeDasharray="6 4"
+                      style={{ animation: 'marchingAnts 0.35s linear infinite' }}
+                    />
+                  </svg>
+                )
+              })()}
             </div>
           )}
 

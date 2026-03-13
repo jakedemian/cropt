@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Check, ImagePlus, Layers, Maximize, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type } from 'lucide-react'
+import { X, Check, ImagePlus, Layers, Maximize, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect } from 'lucide-react'
 
 const BG_OPTIONS = [
   { value: '#ffffff', title: 'White',       style: { background: '#fff', border: '1.5px solid rgba(255,255,255,0.2)' } },
@@ -197,8 +197,11 @@ export default function BottomToolbar({
 
       {/* Tool selector */}
       <div className="flex items-center bg-[#2d3139] rounded p-0.5 gap-0.5 shrink-0">
-        <button title="Select" onClick={() => onSetActiveTool('select')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'select' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
+        <button title="Move" onClick={() => onSetActiveTool('select')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'select' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
           <MousePointer2 size={15} />
+        </button>
+        <button title="Select" onClick={() => onSetActiveTool('marquee')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'marquee' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
+          <BoxSelect size={15} />
         </button>
         <button title="Brush" onClick={() => onSetActiveTool('brush')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'brush' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
           <Paintbrush size={15} />

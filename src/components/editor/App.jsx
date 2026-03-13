@@ -332,6 +332,8 @@ export default function App() {
         selectNode(id)
       }
       setActiveTool(tool)
+    } else if (tool === 'marquee') {
+      setActiveTool('marquee')
     } else if (tool === 'text') {
       setActiveTool('text')
       selectNode(null)
@@ -581,6 +583,10 @@ export default function App() {
             brushSize={brushSize}
             onDrawStart={pushHistory}
             onDrawEnd={(id, dataUrl) => updateNode(id, { dataUrl })}
+            marqueeMode={activeTool === 'marquee'}
+            marqueeNodeId={activeTool === 'marquee' && selectedNode?.type === 'raster' ? selectedNodeId : null}
+            onMarqueeStart={pushHistory}
+            onMarqueeEnd={(id, dataUrl) => updateNode(id, { dataUrl })}
           />
 
           {/* Mobile layer panel overlay (desktop uses sidebar) */}

@@ -1,12 +1,11 @@
 # Editor — Plans & Notes
 
-## UX Improvements
+## Improvements & Features
 
-### Landing Experience
-The default blank 1000x1000 canvas isn't the right first impression. Need a second pass on what the editor looks like/does before the user has imported anything.
-
-### Image Import & Initial Crop
-The cropping behavior immediately after importing an image feels awkward. Needs revisiting.
+| # | Description | Status |
+|---|-------------|--------|
+| 1 | **Landing experience** — Default blank 1000x1000 canvas isn't the right first impression. Needs a second pass on what the editor looks like before the user has imported anything. | Open |
+| 2 | **Image import & initial crop** — Cropping behavior immediately after importing an image feels awkward. Needs revisiting. | Open |
 
 ---
 

@@ -1,13 +1,15 @@
 import { RotateCcw, Clock } from 'lucide-react'
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
 function formatDate(ts) {
   const d = new Date(ts)
-  const now = new Date()
-  const isToday = d.toDateString() === now.toDateString()
-  if (isToday) {
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const month = MONTHS[d.getMonth()]
+  const day   = d.getDate()
+  const year  = d.getFullYear()
+  const hh    = String(d.getHours()).padStart(2, '0')
+  const mm    = String(d.getMinutes()).padStart(2, '0')
+  return `Last edited ${month} ${day} ${year} ${hh}:${mm}`
 }
 
 export default function HistoryPanel({ entries, onRestore }) {

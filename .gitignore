@@ -37,3 +37,6 @@ public/workbox-*.js
 public/workbox-*.js.map
 
 .vercel
+
+# Internal planning — not for public consumption
+PLAN.md

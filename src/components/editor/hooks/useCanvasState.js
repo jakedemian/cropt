@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 
-const DEFAULT_CANVAS_SIZE = { width: 1080, height: 1080 }
+const DEFAULT_CANVAS_SIZE = { width: 500, height: 500 }
 
 export function useCanvasState() {
   const [canvasSize, setCanvasSize] = useState(DEFAULT_CANVAS_SIZE)

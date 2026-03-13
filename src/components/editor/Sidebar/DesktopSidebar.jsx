@@ -2,6 +2,7 @@ import LayerPanel from '../LayerPanel/LayerPanel'
 import HistoryPanel from './HistoryPanel'
 
 export default function DesktopSidebar({
+  width,
   nodes,
   selectedNodeId,
   onSelectNode,
@@ -12,7 +13,10 @@ export default function DesktopSidebar({
   onRestoreDocument,
 }) {
   return (
-    <div className="hidden sm:flex flex-col w-56 border-l border-white/10 bg-[#24272f] overflow-hidden shrink-0">
+    <div
+      className="hidden sm:flex flex-col bg-[#24272f] overflow-hidden shrink-0"
+      style={{ width }}
+    >
       {/* Layers section — takes up to half the sidebar, scrolls internally */}
       <div className="flex flex-col min-h-0 flex-1 overflow-hidden border-b border-white/10">
         <LayerPanel

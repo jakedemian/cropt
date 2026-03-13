@@ -25,7 +25,46 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try { return localStorage.getItem('cropt_sidebar') !== 'false' } catch { return true }
   })
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try { return parseInt(localStorage.getItem('cropt_sidebar_width')) || 224 } catch { return 224 }
+  })
   const [historyEntries, setHistoryEntries] = useState([])
+
+  // ── Sidebar drag-to-resize ─────────────────────────────────────────────────
+  const sidebarDragActive  = useRef(false)
+  const sidebarDragStartX  = useRef(0)
+  const sidebarDragStartW  = useRef(0)
+  const sidebarCurrentW    = useRef(sidebarWidth)
+
+  const handleSidebarDragStart = useCallback((e) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    sidebarDragActive.current = true
+    sidebarDragStartX.current = e.clientX
+    sidebarDragStartW.current = sidebarCurrentW.current
+  }, [])
+
+  const handleSidebarDragMove = useCallback((e) => {
+    if (!sidebarDragActive.current) return
+    const delta    = sidebarDragStartX.current - e.clientX  // left = wider
+    const newWidth = Math.max(150, Math.min(480, sidebarDragStartW.current + delta))
+    sidebarCurrentW.current = newWidth
+    setSidebarWidth(newWidth)
+    if (!sidebarOpen && newWidth > 150) setSidebarOpen(true)
+  }, [sidebarOpen])
+
+  const handleSidebarDragEnd = useCallback(() => {
+    if (!sidebarDragActive.current) return
+    sidebarDragActive.current = false
+    const w = sidebarCurrentW.current
+    if (w < 150) {
+      setSidebarOpen(false)
+      // Reset to default so next open starts at a sensible width
+      setSidebarWidth(224)
+      sidebarCurrentW.current = 224
+    }
+    try { localStorage.setItem('cropt_sidebar_width', String(sidebarCurrentW.current)) } catch { /* ignore */ }
+  }, [])
   // Shared with useBackGuard — when the user confirms "Leave" in our custom
   // dialog, this ref is set true before history.back() so the beforeunload
   // handler stands down and doesn't show a redundant second dialog.
@@ -87,6 +126,7 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('cropt_sidebar', sidebarOpen ? 'true' : 'false') } catch { /* ignore */ }
   }, [sidebarOpen])
+  useEffect(() => { sidebarCurrentW.current = sidebarWidth }, [sidebarWidth])
 
   // ── Auto-save on every meaningful change ──────────────────────────────────
   // Debounced inside the hook (1500 ms). Skip while in resize mode because
@@ -545,9 +585,19 @@ export default function App() {
           )}
         </div>
 
+        {/* Sidebar drag strip — always visible on desktop */}
+        <div
+          className="hidden sm:block w-1 shrink-0 cursor-col-resize hover:bg-white/20 active:bg-white/30 transition-colors touch-none select-none"
+          onPointerDown={handleSidebarDragStart}
+          onPointerMove={handleSidebarDragMove}
+          onPointerUp={handleSidebarDragEnd}
+          onPointerCancel={handleSidebarDragEnd}
+        />
+
         {/* Desktop sidebar */}
         {sidebarOpen && (
           <DesktopSidebar
+            width={sidebarWidth}
             nodes={nodes}
             selectedNodeId={selectedNodeId}
             onSelectNode={selectNode}

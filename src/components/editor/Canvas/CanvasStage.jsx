@@ -148,6 +148,7 @@ export default function CanvasStage({
 
   const isDrawingRef = useRef(false)
   const lastDrawPt   = useRef(null)
+  const [brushCursorPos, setBrushCursorPos] = useState(null)
 
   const getDrawPoint = useCallback((e) => {
     if (!containerRef.current) return null
@@ -496,12 +497,35 @@ export default function CanvasStage({
           {drawMode && drawNodeId && (
             <div
               className="absolute inset-0"
-              style={{ cursor: drawTool === 'eraser' ? 'cell' : 'crosshair', zIndex: 10, touchAction: 'none' }}
+              style={{ cursor: 'none', zIndex: 10, touchAction: 'none' }}
               onPointerDown={handleDrawPointerDown}
-              onPointerMove={handleDrawPointerMove}
+              onPointerMove={(e) => {
+                const rect = containerRef.current?.getBoundingClientRect()
+                if (rect) setBrushCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+                handleDrawPointerMove(e)
+              }}
               onPointerUp={handleDrawPointerUp}
               onPointerCancel={handleDrawPointerUp}
-            />
+              onPointerLeave={() => setBrushCursorPos(null)}
+            >
+              {brushCursorPos && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: brushCursorPos.x,
+                    top: brushCursorPos.y,
+                    width: brushSize * stageViewport.scale,
+                    height: brushSize * stageViewport.scale,
+                    transform: 'translate(-50%, -50%)',
+                    borderRadius: '50%',
+                    border: '1.5px solid rgba(255,255,255,0.65)',
+                    background: 'rgba(255,255,255,0.07)',
+                    pointerEvents: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              )}
+            </div>
           )}
 
           {/* DOM overlay: crosshair click-to-place for text placement mode */}

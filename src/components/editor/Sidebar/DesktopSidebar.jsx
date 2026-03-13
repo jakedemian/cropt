@@ -7,6 +7,7 @@ export default function DesktopSidebar({
   onSelectNode,
   onToggleVisible,
   onReorder,
+  onNewLayer,
   historyEntries,
   onRestoreDocument,
 }) {
@@ -21,6 +22,7 @@ export default function DesktopSidebar({
           onSelectNode={onSelectNode}
           onToggleVisible={onToggleVisible}
           onReorder={onReorder}
+          onNewLayer={onNewLayer}
         />
       </div>
 

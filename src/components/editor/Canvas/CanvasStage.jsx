@@ -3,6 +3,7 @@ import { Stage, Layer, Rect } from 'react-konva'
 import { fitCanvasToContainer } from '../utils/canvasUtils'
 import ImageNode from './ImageNode'
 import TextNode from './TextNode'
+import RasterNode from './RasterNode'
 import TextEditOverlay from './TextEditOverlay'
 import TransformWrapper from './TransformWrapper'
 import CanvasResizeHandles from './CanvasResizeHandles'
@@ -54,12 +55,175 @@ export default function CanvasStage({
   onTextChange,
   onConfirmTextEdit,
   onCancelTextEdit,
+  // draw-mode props
+  drawMode,
+  drawNodeId,
+  drawTool,
+  brushColor,
+  brushSize,
+  onDrawStart,
+  onDrawEnd,
 }) {
   const containerRef = useRef(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
   const [imageLoadCount, setImageLoadCount] = useState(0)
   const lastCenter = useRef(null)
   const lastDist = useRef(null)
+
+  // ── Raster layer canvas management ────────────────────────────────────────
+  // rasterCanvases is React state so it can be accessed safely during render.
+  // rasterCanvasRef mirrors it for sync access inside event handlers.
+  const [rasterCanvases, setRasterCanvases] = useState({}) // { [nodeId]: HTMLCanvasElement }
+  const rasterCanvasRef    = useRef({})        // mirrors rasterCanvases for event handlers
+  const rasterDataUrlCache = useRef({})        // last synced dataUrl per node
+
+  useEffect(() => {
+    rasterCanvasRef.current = rasterCanvases
+  }, [rasterCanvases])
+
+  useEffect(() => {
+    const cache = rasterDataUrlCache.current
+    let changed = false
+
+    const next = { ...rasterCanvasRef.current }
+
+    nodes.forEach((node) => {
+      if (node.type !== 'raster') return
+
+      // Create canvas element on first encounter
+      if (!next[node.id]) {
+        const canvas = document.createElement('canvas')
+        canvas.width  = node.width
+        canvas.height = node.height
+        next[node.id]   = canvas
+        cache[node.id]  = null
+        changed = true
+      }
+
+      const canvas = next[node.id]
+
+      // dataUrl changed externally (undo/redo/restore) — reload pixels
+      if (node.dataUrl !== cache[node.id]) {
+        const ctx = canvas.getContext('2d')
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        cache[node.id] = node.dataUrl
+        if (node.dataUrl) {
+          const img = new window.Image()
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0)
+            stageRef.current?.batchDraw()
+          }
+          img.src = node.dataUrl
+        } else {
+          stageRef.current?.batchDraw()
+        }
+      }
+    })
+
+    // Remove stale canvases for deleted nodes
+    Object.keys(next).forEach((id) => {
+      if (!nodes.find((n) => n.id === id)) {
+        delete next[id]
+        delete cache[id]
+        changed = true
+      }
+    })
+
+    if (changed) setRasterCanvases(next)
+  }, [nodes, stageRef])
+
+  // ── Drawing helpers ────────────────────────────────────────────────────────
+  // Keep draw config in a ref so pointer handlers never go stale and don't
+  // need drawTool/brushColor/brushSize in their dependency arrays.
+  const drawConfigRef = useRef({ drawTool, brushColor, brushSize })
+  useEffect(() => { drawConfigRef.current = { drawTool, brushColor, brushSize } }, [drawTool, brushColor, brushSize])
+
+  // Keep stageViewport + draw node info in refs for the same reason.
+  const stageViewportRef = useRef(stageViewport)
+  useEffect(() => { stageViewportRef.current = stageViewport }, [stageViewport])
+  const drawNodeIdRef = useRef(drawNodeId)
+  useEffect(() => { drawNodeIdRef.current = drawNodeId }, [drawNodeId])
+  const nodesRef = useRef(nodes)
+  useEffect(() => { nodesRef.current = nodes }, [nodes])
+
+  const isDrawingRef = useRef(false)
+  const lastDrawPt   = useRef(null)
+
+  const getDrawPoint = useCallback((e) => {
+    if (!containerRef.current) return null
+    const rect = containerRef.current.getBoundingClientRect()
+    const vp  = stageViewportRef.current
+    const cx  = (e.clientX - rect.left  - vp.x) / vp.scale
+    const cy  = (e.clientY - rect.top   - vp.y) / vp.scale
+    const id  = drawNodeIdRef.current
+    const node = nodesRef.current.find((n) => n.id === id)
+    if (!node) return null
+    return {
+      x: (cx - node.x) / (node.scaleX || 1),
+      y: (cy - node.y) / (node.scaleY || 1),
+    }
+  }, [])
+
+  const paintDot = useCallback((ctx, x, y) => {
+    const { drawTool: tool, brushColor: color, brushSize: size } = drawConfigRef.current
+    ctx.save()
+    ctx.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over'
+    ctx.fillStyle = tool === 'eraser' ? 'rgba(0,0,0,1)' : color
+    ctx.beginPath()
+    ctx.arc(x, y, size / 2, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }, [])
+
+  const paintLine = useCallback((ctx, x1, y1, x2, y2) => {
+    const { brushSize: size } = drawConfigRef.current
+    const dx = x2 - x1
+    const dy = y2 - y1
+    const dist  = Math.hypot(dx, dy)
+    const step  = Math.max(1, size / 4)
+    const steps = Math.ceil(dist / step)
+    for (let i = 0; i <= steps; i++) {
+      const t = steps === 0 ? 0 : i / steps
+      paintDot(ctx, x1 + dx * t, y1 + dy * t)
+    }
+  }, [paintDot])
+
+  const handleDrawPointerDown = useCallback((e) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    onDrawStart()
+    isDrawingRef.current = true
+    const pt = getDrawPoint(e)
+    if (!pt) return
+    lastDrawPt.current = pt
+    const canvas = rasterCanvasRef.current[drawNodeIdRef.current]
+    if (!canvas) return
+    paintDot(canvas.getContext('2d'), pt.x, pt.y)
+    stageRef.current?.batchDraw()
+  }, [onDrawStart, getDrawPoint, paintDot, stageRef])
+
+  const handleDrawPointerMove = useCallback((e) => {
+    if (!isDrawingRef.current) return
+    const pt = getDrawPoint(e)
+    if (!pt || !lastDrawPt.current) return
+    const canvas = rasterCanvasRef.current[drawNodeIdRef.current]
+    if (!canvas) return
+    paintLine(canvas.getContext('2d'), lastDrawPt.current.x, lastDrawPt.current.y, pt.x, pt.y)
+    lastDrawPt.current = pt
+    stageRef.current?.batchDraw()
+  }, [getDrawPoint, paintLine, stageRef])
+
+  const handleDrawPointerUp = useCallback(() => {
+    if (!isDrawingRef.current) return
+    isDrawingRef.current = false
+    lastDrawPt.current   = null
+    const id = drawNodeIdRef.current
+    const canvas = rasterCanvasRef.current[id]
+    if (!canvas) return
+    const dataUrl = canvas.toDataURL('image/png')
+    // Update cache before notifying parent so the sync effect doesn't reload
+    rasterDataUrlCache.current[id] = dataUrl
+    onDrawEnd(id, dataUrl)
+  }, [onDrawEnd])
 
   // Track container size with ResizeObserver; re-fit on every size change
   useEffect(() => {
@@ -194,7 +358,7 @@ export default function CanvasStage({
     [selectNode, stageRef, textPlaceMode]
   )
 
-  const isInteractive = !canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId
+  const isInteractive = !canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId && !drawMode
 
   // Find the node currently being edited (for the overlay)
   const editingNode = editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null
@@ -211,11 +375,11 @@ export default function CanvasStage({
             y={stageViewport.y}
             scaleX={stageViewport.scale}
             scaleY={stageViewport.scale}
-            draggable={!canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId}
+            draggable={!canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId && !drawMode}
             onDragEnd={handleStageDragEnd}
-            onWheel={canvasResizeMode || cropMode ? undefined : handleWheel}
-            onTouchMove={canvasResizeMode || cropMode ? undefined : handleTouchMove}
-            onTouchEnd={canvasResizeMode || cropMode ? undefined : handleTouchEnd}
+            onWheel={canvasResizeMode || cropMode || drawMode ? undefined : handleWheel}
+            onTouchMove={canvasResizeMode || cropMode || drawMode ? undefined : handleTouchMove}
+            onTouchEnd={canvasResizeMode || cropMode || drawMode ? undefined : handleTouchEnd}
             onClick={handleStageClick}
             onTap={handleStageClick}
           >
@@ -275,6 +439,19 @@ export default function CanvasStage({
                   )
                 }
 
+                if (node.type === 'raster') {
+                  return (
+                    <RasterNode
+                      key={node.id}
+                      node={node}
+                      canvasEl={rasterCanvases[node.id]}
+                      draggable={isInteractive && selectedNodeId === node.id}
+                      onSelect={() => isInteractive && selectNode(node.id)}
+                      onChange={(updates) => updateNode(node.id, updates)}
+                    />
+                  )
+                }
+
                 return null
               })}
             </Layer>
@@ -312,6 +489,18 @@ export default function CanvasStage({
               cropRect={cropRect}
               setCropRect={setCropRect}
               stageViewport={stageViewport}
+            />
+          )}
+
+          {/* DOM overlay: drawing surface */}
+          {drawMode && drawNodeId && (
+            <div
+              className="absolute inset-0"
+              style={{ cursor: drawTool === 'eraser' ? 'cell' : 'crosshair', zIndex: 10, touchAction: 'none' }}
+              onPointerDown={handleDrawPointerDown}
+              onPointerMove={handleDrawPointerMove}
+              onPointerUp={handleDrawPointerUp}
+              onPointerCancel={handleDrawPointerUp}
             />
           )}
 

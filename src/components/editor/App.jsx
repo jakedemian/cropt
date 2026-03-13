@@ -161,6 +161,12 @@ export default function App() {
   const [cropMode, setCropMode] = useState(false)
   const [cropRect, setCropRect] = useState(null) // { x, y, width, height } canvas coords
 
+  // ── Draw mode ──────────────────────────────────────────────────────────────
+  const [drawMode, setDrawMode] = useState(false)
+  const [drawTool, setDrawTool] = useState('brush')   // 'brush' | 'eraser'
+  const [brushColor, setBrushColor] = useState('#000000')
+  const [brushSize, setBrushSize] = useState(20)
+
   // ── Text mode ──────────────────────────────────────────────────────────────
   const [textPlaceMode, setTextPlaceMode] = useState(false)
   const [editingNodeId, setEditingNodeId] = useState(null)
@@ -184,6 +190,7 @@ export default function App() {
     setTextPlaceMode(false)
     setEditingNodeId(null)
     setEditingOrigState(null)
+    setDrawMode(false)
     setShowLayerPanel(false)
     setShowMobileHistory(false)
     // Reset all canvas state and history
@@ -221,11 +228,33 @@ export default function App() {
     setHistoryEntries(await loadHistory())
   }, [loadDocument, loadHistory, saveToHistory, generateThumbnail, nodes, canvasSize, canvasBackground, replaceNodes, setCanvasSize, setCanvasBackground, setStageViewport])
 
+  // ── Raster layer creation ──────────────────────────────────────────────────
+  const handleNewRasterLayer = useCallback(() => {
+    const count = nodes.filter((n) => n.type === 'raster').length + 1
+    pushHistory()
+    addNode({
+      id: uuidv4(),
+      type: 'raster',
+      name: `Layer ${count}`,
+      x: 0,
+      y: 0,
+      width: canvasSize.width,
+      height: canvasSize.height,
+      dataUrl: null,
+      opacity: 1,
+      visible: true,
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0,
+    })
+  }, [pushHistory, addNode, nodes, canvasSize])
+
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   // Placed after cropMode/textMode declarations to avoid temporal dead zone.
   useEffect(() => {
     const handler = (e) => {
-      if (canvasResizeMode || cropMode || editingNodeId) return   // don't undo mid-operation
+      if (e.key === 'Escape' && drawMode) { setDrawMode(false); return }
+      if (canvasResizeMode || cropMode || editingNodeId || drawMode) return
       if (!(e.metaKey || e.ctrlKey)) return
       if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
       if (e.key === 'z' &&  e.shiftKey) { e.preventDefault(); redo() }
@@ -233,7 +262,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [undo, redo, canvasResizeMode, cropMode, editingNodeId])
+  }, [undo, redo, canvasResizeMode, cropMode, editingNodeId, drawMode])
 
   // ── Paste image from clipboard (Ctrl+V / Cmd+V) ─────────────────────────
   useEffect(() => {
@@ -452,6 +481,13 @@ export default function App() {
             onTextChange={(text) => editingNodeId && updateNode(editingNodeId, { text })}
             onConfirmTextEdit={handleConfirmTextEdit}
             onCancelTextEdit={handleCancelTextEdit}
+            drawMode={drawMode}
+            drawNodeId={drawMode ? selectedNodeId : null}
+            drawTool={drawTool}
+            brushColor={brushColor}
+            brushSize={brushSize}
+            onDrawStart={pushHistory}
+            onDrawEnd={(id, dataUrl) => updateNode(id, { dataUrl })}
           />
 
           {/* Mobile layer panel overlay (desktop uses sidebar) */}
@@ -466,6 +502,7 @@ export default function App() {
                   if (node) { pushHistory(); updateNode(id, { visible: !node.visible }) }
                 }}
                 onReorder={(newNodes) => { pushHistory(); reorderNodes(newNodes) }}
+                onNewLayer={handleNewRasterLayer}
                 onClose={() => setShowLayerPanel(false)}
               />
             </div>
@@ -504,6 +541,7 @@ export default function App() {
               if (node) { pushHistory(); updateNode(id, { visible: !node.visible }) }
             }}
             onReorder={(newNodes) => { pushHistory(); reorderNodes(newNodes) }}
+            onNewLayer={handleNewRasterLayer}
             historyEntries={historyEntries}
             onRestoreDocument={handleRestoreDocument}
           />
@@ -541,6 +579,15 @@ export default function App() {
         onTextStyleChange={(updates) => selectedNode && updateNode(selectedNode.id, updates)}
         editingNode={nodes.find((n) => n.id === editingNodeId) ?? null}
         onFontChange={(fontFamily) => editingNodeId && updateNode(editingNodeId, { fontFamily })}
+        drawMode={drawMode}
+        drawTool={drawTool}
+        brushColor={brushColor}
+        brushSize={brushSize}
+        onEnterDraw={() => setDrawMode(true)}
+        onExitDraw={() => setDrawMode(false)}
+        onDrawToolChange={setDrawTool}
+        onBrushColorChange={setBrushColor}
+        onBrushSizeChange={setBrushSize}
       />
 
       <input

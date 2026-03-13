@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Check, ImagePlus, Type, Layers, Maximize, Scissors, FlipHorizontal2, Trash2, Pencil, Palette } from 'lucide-react'
+import { X, Check, ImagePlus, Type, Layers, Maximize, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser } from 'lucide-react'
 
 const BG_OPTIONS = [
   { value: '#ffffff', title: 'White',       style: { background: '#fff', border: '1.5px solid rgba(255,255,255,0.2)' } },
@@ -53,6 +53,16 @@ export default function BottomToolbar({
   // Font selector (editing state only)
   editingNode,
   onFontChange,
+  // Draw mode
+  drawMode,
+  drawTool,
+  brushColor,
+  brushSize,
+  onEnterDraw,
+  onExitDraw,
+  onDrawToolChange,
+  onBrushColorChange,
+  onBrushSizeChange,
 }) {
   // ── Hooks must be declared before any early returns (Rules of Hooks) ───────
   const [bgOpen, setBgOpen] = useState(false)
@@ -72,6 +82,69 @@ export default function BottomToolbar({
 
   const isBold = selectedNode?.fontStyle?.includes('bold')
   const isItalic = selectedNode?.fontStyle?.includes('italic')
+
+  // While drawing, show brush controls
+  if (drawMode) {
+    return (
+      <footer
+        className="flex items-center gap-2 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5 overflow-x-auto"
+        style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        <button
+          onClick={() => onDrawToolChange('brush')}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+            drawTool === 'brush' ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#363b44] text-white hover:bg-[#424850]'
+          }`}
+        >
+          <Paintbrush size={14} /> Brush
+        </button>
+        <button
+          onClick={() => onDrawToolChange('eraser')}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+            drawTool === 'eraser' ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#363b44] text-white hover:bg-[#424850]'
+          }`}
+        >
+          <Eraser size={14} /> Eraser
+        </button>
+
+        <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
+
+        {drawTool === 'brush' && (
+          <input
+            type="color"
+            value={brushColor}
+            onChange={(e) => onBrushColorChange(e.target.value)}
+            className="w-8 h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
+            title="Brush colour"
+            style={{ padding: '1px' }}
+          />
+        )}
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-white/40 whitespace-nowrap">Size</span>
+          <input
+            type="range"
+            min={2}
+            max={120}
+            step={1}
+            value={brushSize}
+            onChange={(e) => onBrushSizeChange(Number(e.target.value))}
+            className="w-24 accent-[#0fff95]"
+          />
+          <span className="text-xs text-white/40 tabular-nums w-8">{brushSize}px</span>
+        </div>
+
+        <div className="flex-1" />
+
+        <button
+          onClick={onExitDraw}
+          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors shrink-0"
+        >
+          <Check size={14} /> Done
+        </button>
+      </footer>
+    )
+  }
 
   // While resizing, show only confirm / cancel
   if (canvasResizeMode) {
@@ -427,6 +500,41 @@ export default function BottomToolbar({
               style={{ padding: '1px' }}
             />
           )}
+
+          <button
+            onClick={onDelete}
+            className="flex items-center gap-1.5 px-3 py-2 rounded text-sm bg-red-700 hover:bg-red-600 transition-colors whitespace-nowrap"
+          >
+            <Trash2 size={14} /> Delete
+          </button>
+
+          <div className="flex items-center gap-2 ml-1 shrink-0">
+            <span className="hidden sm:block text-xs text-white/40 whitespace-nowrap">Opacity</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={selectedNode.opacity}
+              onPointerDown={onOpacityStart}
+              onChange={(e) => onOpacityChange(parseFloat(e.target.value))}
+              className="w-24 accent-[#0fff95]"
+            />
+          </div>
+        </>
+      )}
+
+      {/* Per-raster-layer controls */}
+      {selectedNode?.type === 'raster' && (
+        <>
+          <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
+
+          <button
+            onClick={onEnterDraw}
+            className="flex items-center gap-1.5 px-3 py-2 rounded text-sm bg-[#363b44] hover:bg-[#424850] transition-colors whitespace-nowrap"
+          >
+            <Paintbrush size={14} /> Draw
+          </button>
 
           <button
             onClick={onDelete}

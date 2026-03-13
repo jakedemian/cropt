@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Paintbrush } from 'lucide-react'
 
 export default function LayerItem({
   node,
@@ -59,6 +59,11 @@ export default function LayerItem({
             >
               {node.text ? node.text.slice(0, 2).toUpperCase() : 'T'}
             </span>
+          )}
+          {node.type === 'raster' && (
+            node.dataUrl
+              ? <img src={node.dataUrl} alt="" className="w-full h-full object-contain" style={{ opacity: node.opacity }} draggable={false} />
+              : <Paintbrush size={14} className="text-white/30" />
           )}
         </div>
 

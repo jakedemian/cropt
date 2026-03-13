@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback } from 'react'
-import { X } from 'lucide-react'
+import { X, Plus } from 'lucide-react'
 import LayerItem from './LayerItem'
 
 // embedded=true: renders as a flex column for use inside the desktop sidebar.
 // embedded=false (default): renders as an absolute bottom overlay for mobile.
-export default function LayerPanel({ nodes, selectedNodeId, onSelectNode, onToggleVisible, onReorder, onClose, embedded = false }) {
+export default function LayerPanel({ nodes, selectedNodeId, onSelectNode, onToggleVisible, onReorder, onNewLayer, onClose, embedded = false }) {
   const [dragIndex, setDragIndex] = useState(null)   // panel-index being dragged
   const [dropIndex, setDropIndex] = useState(null)   // 0..n insertion point
   const listRef = useRef(null)
@@ -64,7 +64,16 @@ export default function LayerPanel({ nodes, selectedNodeId, onSelectNode, onTogg
       <div className="flex flex-col min-h-0">
         {/* Header — no close button in embedded/sidebar mode */}
         <div className="flex items-center px-4 py-2 shrink-0 border-b border-white/10">
-          <span className="text-sm font-semibold text-white">Layers</span>
+          <span className="text-sm font-semibold text-white flex-1">Layers</span>
+          {onNewLayer && (
+            <button
+              onClick={onNewLayer}
+              title="New raster layer"
+              className="p-1 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <Plus size={14} />
+            </button>
+          )}
         </div>
         <div
           ref={listRef}
@@ -109,8 +118,17 @@ export default function LayerPanel({ nodes, selectedNodeId, onSelectNode, onTogg
       style={{ maxHeight: '40%' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 shrink-0 border-b border-white/10">
-        <span className="text-sm font-semibold text-white">Layers</span>
+      <div className="flex items-center px-4 py-2 shrink-0 border-b border-white/10">
+        <span className="text-sm font-semibold text-white flex-1">Layers</span>
+        {onNewLayer && (
+          <button
+            onClick={onNewLayer}
+            title="New raster layer"
+            className="p-1 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors mr-1"
+          >
+            <Plus size={14} />
+          </button>
+        )}
         <button
           onClick={onClose}
           className="text-white/40 hover:text-white p-1 rounded transition-colors"

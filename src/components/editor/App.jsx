@@ -111,7 +111,7 @@ export default function App() {
   // Generate a small thumbnail data URL from the current canvas state.
   const generateThumbnail = useCallback(async () => {
     try {
-      const blob = await captureBlob({ pixelRatio: 1 })
+      const blob = await captureBlob(1)
       if (!blob) return null
       return new Promise((resolve) => {
         const img = new Image()
@@ -178,29 +178,32 @@ export default function App() {
   const [confirmingNew, setConfirmingNew] = useState(false)
 
   const executeNewDocument = useCallback(async () => {
-    // Save current document to history before clearing (only if there's content)
-    if (nodes.length > 0) {
-      const thumbnail = await generateThumbnail()
-      await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail)
-      setHistoryEntries(await loadHistory())
+    try {
+      // Save current document to history before clearing (only if there's content)
+      if (nodes.length > 0) {
+        const thumbnail = await generateThumbnail()
+        await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail)
+        setHistoryEntries(await loadHistory())
+      }
+      // Exit any active sub-mode before wiping state
+      setCropMode(false)
+      setCropRect(null)
+      setTextPlaceMode(false)
+      setEditingNodeId(null)
+      setEditingOrigState(null)
+      setDrawMode(false)
+      setShowLayerPanel(false)
+      setShowMobileHistory(false)
+      // Reset all canvas state and history
+      resetDocument()
+      // Wipe the saved session — fast "New → confirm" can't re-save old state
+      // because clearSession() also cancels the pending debounce timer.
+      clearSession()
+      // Reset viewport to default position
+      setStageViewport({ x: 0, y: 0, scale: 1 })
+    } finally {
+      setConfirmingNew(false)
     }
-    // Exit any active sub-mode before wiping state
-    setCropMode(false)
-    setCropRect(null)
-    setTextPlaceMode(false)
-    setEditingNodeId(null)
-    setEditingOrigState(null)
-    setDrawMode(false)
-    setShowLayerPanel(false)
-    setShowMobileHistory(false)
-    // Reset all canvas state and history
-    resetDocument()
-    // Wipe the saved session — fast "New → confirm" can't re-save old state
-    // because clearSession() also cancels the pending debounce timer.
-    clearSession()
-    // Reset viewport to default position
-    setStageViewport({ x: 0, y: 0, scale: 1 })
-    setConfirmingNew(false)
   }, [nodes, canvasSize, canvasBackground, generateThumbnail, saveToHistory, loadHistory, resetDocument, clearSession, setStageViewport])
 
   const handleNewDocument = useCallback(() => {

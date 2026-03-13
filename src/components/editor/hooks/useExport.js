@@ -44,16 +44,23 @@ export function useExport({ stageRef, canvasBackground, canvasSize, pixelRatio =
         }
       }
 
-      const blob = await new Promise((resolve) => {
-        stage.toBlob({
-          x: 0,
-          y: 0,
-          width:  canvasSize.width,
-          height: canvasSize.height,
-          pixelRatio: ratio,
-          mimeType: 'image/png',
-          callback: resolve,
-        })
+      const blob = await new Promise((resolve, reject) => {
+        try {
+          const p = stage.toBlob({
+            x: 0,
+            y: 0,
+            width:  canvasSize.width,
+            height: canvasSize.height,
+            pixelRatio: ratio,
+            mimeType: 'image/png',
+            callback: resolve,
+          })
+          // Konva's toBlob also returns a Promise internally — catch any rejection
+          // so the outer Promise doesn't hang if Konva throws asynchronously.
+          if (p && typeof p.then === 'function') p.catch(reject)
+        } catch (err) {
+          reject(err)
+        }
       })
 
       // Restore stage

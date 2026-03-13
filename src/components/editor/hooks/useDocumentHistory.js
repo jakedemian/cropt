@@ -32,15 +32,19 @@ async function decompress(buffer) {
 
 export function useDocumentHistory() {
 
-  // Save current canvas state as a history entry. Drops the oldest if at limit.
-  // thumbnail is an optional data URL (JPEG, small) for preview.
-  const saveToHistory = useCallback(async ({ nodes, canvasSize, canvasBackground }, thumbnail = null) => {
+  // Save current canvas state as a history entry.
+  // - existingId: if set, updates that entry in place (same ID, new timestamp/content)
+  //   rather than creating a new entry. Callers use this so restoring and re-saving
+  //   a document doesn't create duplicate entries.
+  // Returns the id of the saved entry (existing or newly created).
+  const saveToHistory = useCallback(async ({ nodes, canvasSize, canvasBackground }, thumbnail = null, existingId = null) => {
     try {
       const db = await openDB()
       const compressed = await compress(JSON.stringify({ version: 1, canvasSize, canvasBackground, nodes }))
 
+      const id = existingId || Date.now().toString()
       const entry = {
-        id:        Date.now().toString(),
+        id,
         savedAt:   Date.now(),
         thumbnail,
         canvasSize,
@@ -52,21 +56,30 @@ export function useDocumentHistory() {
         const tx    = db.transaction(STORE_NAME, 'readwrite')
         const store = tx.objectStore(STORE_NAME)
 
-        const getAllReq = store.getAll()
-        getAllReq.onsuccess = () => {
-          const all = getAllReq.result
-          if (all.length >= MAX_ENTRIES) {
-            const oldest = all.sort((a, b) => a.savedAt - b.savedAt)[0]
-            store.delete(oldest.id)
-          }
+        if (existingId) {
+          // Update in place — store.put upserts, so this works even if the entry
+          // was somehow evicted. No need to enforce MAX_ENTRIES (count unchanged).
           store.put(entry)
+        } else {
+          const getAllReq = store.getAll()
+          getAllReq.onsuccess = () => {
+            const all = getAllReq.result
+            if (all.length >= MAX_ENTRIES) {
+              const oldest = all.sort((a, b) => a.savedAt - b.savedAt)[0]
+              store.delete(oldest.id)
+            }
+            store.put(entry)
+          }
         }
 
         tx.oncomplete = resolve
         tx.onerror    = () => reject(tx.error)
       })
+
+      return id
     } catch (err) {
       console.warn('[history] save failed:', err)
+      return null
     }
   }, [])
 

@@ -60,6 +60,12 @@ export default function App() {
   const { save, loadSession, clearSession } = useSessionPersistence()
   const { saveToHistory, loadHistory, loadDocument } = useDocumentHistory()
 
+  // Tracks which history entry the current document came from (null = fresh doc).
+  // When saving back to history, we update this entry in place rather than
+  // creating a new one, so repeatedly opening and switching documents doesn't
+  // flood the history list.
+  const currentHistoryIdRef = useRef(null)
+
   // ── Restore session on mount ───────────────────────────────────────────────
   // Runs exactly once. Silently restores the last saved canvas state if one
   // exists. No prompt — just restore. loadSession() returns null on miss,
@@ -179,10 +185,12 @@ export default function App() {
 
   const executeNewDocument = useCallback(async () => {
     try {
-      // Save current document to history before clearing (only if there's content)
+      // Save current document to history before clearing (only if there's content).
+      // Pass the existing history ID so we update in place rather than duplicate.
       if (nodes.length > 0) {
         const thumbnail = await generateThumbnail()
-        await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail)
+        await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail, currentHistoryIdRef.current)
+        currentHistoryIdRef.current = null  // fresh doc has no associated history entry
         setHistoryEntries(await loadHistory())
       }
       // Exit any active sub-mode before wiping state
@@ -217,17 +225,18 @@ export default function App() {
   const handleRestoreDocument = useCallback(async (id) => {
     const doc = await loadDocument(id)
     if (!doc) return
-    // Save current state to history first
+    // Save current state to history first, updating in place if it came from history
     if (nodes.length > 0) {
       const thumbnail = await generateThumbnail()
-      await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail)
+      await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail, currentHistoryIdRef.current)
     }
-    // Restore the selected document
+    // Restore the selected document and track which entry it came from
     replaceNodes(doc.nodes)
     setCanvasSize(doc.canvasSize)
     setCanvasBackground(doc.canvasBackground)
     setStageViewport({ x: 0, y: 0, scale: 1 })
     setShowMobileHistory(false)
+    currentHistoryIdRef.current = id
     setHistoryEntries(await loadHistory())
   }, [loadDocument, loadHistory, saveToHistory, generateThumbnail, nodes, canvasSize, canvasBackground, replaceNodes, setCanvasSize, setCanvasBackground, setStageViewport])
 

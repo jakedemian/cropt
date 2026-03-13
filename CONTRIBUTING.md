@@ -66,7 +66,9 @@ When you believe you meet these criteria, open an issue titled `Maintainer nomin
 
 ## Reporting Issues
 
-Open a GitHub issue. For security vulnerabilities, email `dmca@cropt.app` (a dedicated security contact will be set up as the project grows).
+Open a GitHub issue. For security vulnerabilities, email `jakedemian@proton.me`.
+
+> **TODO:** Set up `security@cropt.app` and `dmca@cropt.app` and replace the email above with `security@cropt.app`.
 
 ---
 

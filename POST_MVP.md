@@ -20,6 +20,9 @@ Currently `.env.local` points directly at all production services. Local develop
 ### DMCA Agent Registration
 ✅ Done (2026-03-12) — Registered at copyright.gov/dmca-directory. Renews every 3 years (~2029). Contact: `dmca@cropt.app`.
 
+### Security & Contact Emails
+Set up `security@cropt.app` and `dmca@cropt.app` via Cloudflare Email Routing, then update `CONTRIBUTING.md` to replace `jakedemian@proton.me` with `security@cropt.app`.
+
 ### Service Tooling & Visibility
 
 See `AUDIT.md` for the service tooling table and latest audit results. Run `/audit` to refresh all services or `/audit-neon`, `/audit-r2`, `/audit-aws`, `/audit-vercel` individually.

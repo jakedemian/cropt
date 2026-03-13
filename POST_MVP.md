@@ -84,3 +84,15 @@ This is a credible claim that most mainstream social platforms can never make. P
 - Open source as a trust signal is underused in consumer social apps
 - The meme editor gives Cropt a unique hook that a plain social clone wouldn't have
 - Open source contributors could accelerate v2+ feature development
+
+### Governance Model
+
+Follows the Linux kernel governance model:
+
+- **Top-level maintainer (Jake)** — sets direction, resolves disputes, has final say
+- **Area maintainers** — trusted contributors who earn merge rights over a specific area (editor, API, feed, etc.) through consistent, high-quality contributions
+- **Contributors** — anyone can submit a PR; it routes to the relevant area maintainer first
+
+Maintainer status is earned by track record, not appointed. The criteria are documented in `CONTRIBUTING.md` so the path is transparent and merit-based. This prevents the "one person controls everything" concern while keeping quality high.
+
+The goal over time is a squad of trusted maintainers who run day-to-day merges independently, with Jake operating at the top level only.

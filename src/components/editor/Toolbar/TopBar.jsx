@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Undo2, Redo2, MoreHorizontal, Check, Download, ClipboardPaste, Upload, FilePlus, Link, Loader2 } from 'lucide-react'
+import { Undo2, Redo2, MoreHorizontal, Check, Download, ClipboardPaste, Upload, FilePlus, Link, Loader2, PanelRight, PanelRightClose, Clock } from 'lucide-react'
 
 export default function TopBar({
   canvasResizeMode, onNew,
   onExport, onCopy, onPaste, onUndo, onRedo, canUndo, canRedo,
   pixelRatio, onTogglePixelRatio, canInstall, onInstall,
   version, onShare, uploadStatus,
+  sidebarOpen, onToggleSidebar, onOpenHistory,
 }) {
   const inMode = canvasResizeMode
   const [moreOpen, setMoreOpen] = useState(false)
@@ -104,6 +105,16 @@ export default function TopBar({
 
               <div className="h-px bg-white/10 sm:hidden" />
 
+              {/* History — mobile only */}
+              <button
+                onClick={() => { setMoreOpen(false); onOpenHistory() }}
+                className="w-full text-left px-4 py-3 text-sm text-white hover:bg-[#363b44] transition-colors sm:hidden flex items-center gap-2"
+              >
+                <Clock size={14} /> History
+              </button>
+
+              <div className="h-px bg-white/10 sm:hidden" />
+
               {/* Export resolution toggle */}
               <button
                 onClick={onTogglePixelRatio}
@@ -157,6 +168,15 @@ export default function TopBar({
           className="hidden sm:flex items-center gap-1.5 px-3 h-9 rounded text-xs font-medium bg-[#363b44] text-white/60 hover:bg-[#424850] transition-colors"
         >
           <ClipboardPaste size={14} /> Paste
+        </button>
+
+        {/* Sidebar toggle — desktop only */}
+        <button
+          onClick={onToggleSidebar}
+          title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          className="hidden sm:flex items-center justify-center w-9 h-9 rounded bg-[#363b44] text-white/60 hover:bg-[#424850] transition-colors"
+        >
+          {sidebarOpen ? <PanelRightClose size={16} /> : <PanelRight size={16} />}
         </button>
         <button
           onClick={onShare}

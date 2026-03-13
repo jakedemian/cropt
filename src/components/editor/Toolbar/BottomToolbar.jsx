@@ -192,16 +192,16 @@ export default function BottomToolbar({
         <Type size={14} /> <span className="hidden sm:inline">Text</span>
       </button>
 
-      {/* Layers toggle */}
+      {/* Layers toggle — hidden on desktop (handled by sidebar) */}
       <button
         onClick={onToggleLayerPanel}
-        className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+        className={`sm:hidden flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
           showLayerPanel
             ? 'bg-[#424850] text-white'
             : 'bg-[#363b44] text-white hover:bg-[#424850]'
         }`}
       >
-        <Layers size={14} /> <span className="hidden sm:inline">Layers</span>
+        <Layers size={14} />
       </button>
 
       {/* Resize + Canvas dimensions */}

@@ -2,7 +2,9 @@ import { useState, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
 import LayerItem from './LayerItem'
 
-export default function LayerPanel({ nodes, selectedNodeId, onSelectNode, onToggleVisible, onReorder, onClose }) {
+// embedded=true: renders as a flex column for use inside the desktop sidebar.
+// embedded=false (default): renders as an absolute bottom overlay for mobile.
+export default function LayerPanel({ nodes, selectedNodeId, onSelectNode, onToggleVisible, onReorder, onClose, embedded = false }) {
   const [dragIndex, setDragIndex] = useState(null)   // panel-index being dragged
   const [dropIndex, setDropIndex] = useState(null)   // 0..n insertion point
   const listRef = useRef(null)
@@ -56,6 +58,50 @@ export default function LayerPanel({ nodes, selectedNodeId, onSelectNode, onTogg
     setDragIndex(null)
     setDropIndex(null)
   }, [dragIndex, dropIndex, reversed, onReorder])
+
+  if (embedded) {
+    return (
+      <div className="flex flex-col min-h-0">
+        {/* Header — no close button in embedded/sidebar mode */}
+        <div className="flex items-center px-4 py-2 shrink-0 border-b border-white/10">
+          <span className="text-sm font-semibold text-white">Layers</span>
+        </div>
+        <div
+          ref={listRef}
+          className="overflow-y-auto flex flex-col py-1 touch-none"
+          onPointerMove={handleListPointerMove}
+          onPointerUp={handleListPointerUp}
+          onPointerCancel={handleListPointerUp}
+        >
+          {reversed.length === 0 && (
+            <p className="text-xs text-white/30 text-center py-4">No layers yet — add an image!</p>
+          )}
+          {reversed.map((node, panelIndex) => {
+            const showDropAbove = dragIndex !== null && dropIndex === panelIndex && panelIndex !== dragIndex
+            const showDropBelow =
+              dragIndex !== null &&
+              panelIndex === reversed.length - 1 &&
+              dropIndex === reversed.length
+            return (
+              <div key={node.id} data-layer-item="">
+                <LayerItem
+                  node={node}
+                  index={nodes.indexOf(node)}
+                  isSelected={selectedNodeId === node.id}
+                  isDragging={panelIndex === dragIndex}
+                  showDropAbove={showDropAbove}
+                  showDropBelow={showDropBelow}
+                  onSelect={() => onSelectNode(node.id)}
+                  onToggleVisible={() => onToggleVisible(node.id)}
+                  onDragHandlePointerDown={(e) => handleDragHandlePointerDown(panelIndex, e)}
+                />
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

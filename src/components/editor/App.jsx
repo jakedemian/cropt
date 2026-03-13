@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { X, Clock } from 'lucide-react'
 import { version } from '../../../package.json'
 import { useCanvasState } from './hooks/useCanvasState'
 import { useImageImport } from './hooks/useImageImport'
@@ -8,15 +9,23 @@ import { useUpload } from './hooks/useUpload'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { useSessionPersistence } from './hooks/useSessionPersistence'
 import { useBackGuard } from './hooks/useBackGuard'
+import { useDocumentHistory } from './hooks/useDocumentHistory'
 import { cropNodeToCanvas, cropImageToRect } from './utils/canvasUtils'
 import CanvasStage from './Canvas/CanvasStage'
 import TopBar from './Toolbar/TopBar'
 import BottomToolbar from './Toolbar/BottomToolbar'
 import LayerPanel from './LayerPanel/LayerPanel'
+import DesktopSidebar from './Sidebar/DesktopSidebar'
+import HistoryPanel from './Sidebar/HistoryPanel'
 
 export default function App() {
   const stageRef = useRef(null)
   const [showLayerPanel, setShowLayerPanel] = useState(false)
+  const [showMobileHistory, setShowMobileHistory] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try { return localStorage.getItem('cropt_sidebar') !== 'false' } catch { return true }
+  })
+  const [historyEntries, setHistoryEntries] = useState([])
   // Shared with useBackGuard — when the user confirms "Leave" in our custom
   // dialog, this ref is set true before history.back() so the beforeunload
   // handler stands down and doesn't show a redundant second dialog.
@@ -49,6 +58,7 @@ export default function App() {
   } = useCanvasState()
 
   const { save, loadSession, clearSession } = useSessionPersistence()
+  const { saveToHistory, loadHistory, loadDocument } = useDocumentHistory()
 
   // ── Restore session on mount ───────────────────────────────────────────────
   // Runs exactly once. Silently restores the last saved canvas state if one
@@ -61,6 +71,16 @@ export default function App() {
     setCanvasSize(session.canvasSize)
     setCanvasBackground(session.canvasBackground)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs once on mount
+
+  // ── Load document history on mount ────────────────────────────────────────
+  useEffect(() => {
+    loadHistory().then(setHistoryEntries)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs once on mount
+
+  // ── Persist sidebar open/close preference ─────────────────────────────────
+  useEffect(() => {
+    try { localStorage.setItem('cropt_sidebar', sidebarOpen ? 'true' : 'false') } catch { /* ignore */ }
+  }, [sidebarOpen])
 
   // ── Auto-save on every meaningful change ──────────────────────────────────
   // Debounced inside the hook (1500 ms). Skip while in resize mode because
@@ -87,6 +107,31 @@ export default function App() {
   const [pixelRatio, setPixelRatio] = useState(1)
   const { exportCanvas, copyCanvas, captureBlob } = useExport({ stageRef, canvasBackground, canvasSize, pixelRatio })
   const { status: uploadStatus, shareUrl, error: uploadError, upload, reset: resetUpload } = useUpload({ captureBlob })
+
+  // Generate a small thumbnail data URL from the current canvas state.
+  const generateThumbnail = useCallback(async () => {
+    try {
+      const blob = await captureBlob({ pixelRatio: 1 })
+      if (!blob) return null
+      return new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+          const maxSize = 96
+          const scale = Math.min(maxSize / img.width, maxSize / img.height, 1)
+          const canvas = document.createElement('canvas')
+          canvas.width  = Math.round(img.width  * scale)
+          canvas.height = Math.round(img.height * scale)
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+          resolve(canvas.toDataURL('image/jpeg', 0.7))
+          URL.revokeObjectURL(img.src)
+        }
+        img.onerror = () => resolve(null)
+        img.src = URL.createObjectURL(blob)
+      })
+    } catch {
+      return null
+    }
+  }, [captureBlob])
   const { canInstall, promptInstall } = useInstallPrompt()
 
   // ── Back-button guard (Android PWA + browsers) ────────────────────────────
@@ -101,22 +146,6 @@ export default function App() {
     onLeaveRequested,
     suppressBeforeUnloadRef,
   })
-
-  // ── Unsaved-work guard ─────────────────────────────────────────────────────
-  // Warn the browser before the user navigates away or closes the tab/window
-  // while there is content on the canvas. Covers: tab close, Cmd+Q, Alt+F4,
-  // and the window X button. suppressBeforeUnloadRef lets confirmLeave() silence
-  // this handler after the user has already confirmed via the back-button dialog,
-  // preventing a redundant second native dialog.
-  useEffect(() => {
-    const handler = (e) => {
-      if (nodes.length === 0 || suppressBeforeUnloadRef.current) return
-      e.preventDefault()
-      e.returnValue = ''   // required for Chrome to show the dialog
-    }
-    window.addEventListener('beforeunload', handler)
-    return () => window.removeEventListener('beforeunload', handler)
-  }, [nodes.length])
 
   // Committed size: updates on handle release (via onResizeCommit) while in
   // resize mode, and tracks canvasSize automatically when outside resize mode
@@ -142,7 +171,13 @@ export default function App() {
   // ── New document ───────────────────────────────────────────────────────────
   const [confirmingNew, setConfirmingNew] = useState(false)
 
-  const executeNewDocument = useCallback(() => {
+  const executeNewDocument = useCallback(async () => {
+    // Save current document to history before clearing (only if there's content)
+    if (nodes.length > 0) {
+      const thumbnail = await generateThumbnail()
+      await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail)
+      setHistoryEntries(await loadHistory())
+    }
     // Exit any active sub-mode before wiping state
     setCropMode(false)
     setCropRect(null)
@@ -150,6 +185,7 @@ export default function App() {
     setEditingNodeId(null)
     setEditingOrigState(null)
     setShowLayerPanel(false)
+    setShowMobileHistory(false)
     // Reset all canvas state and history
     resetDocument()
     // Wipe the saved session — fast "New → confirm" can't re-save old state
@@ -158,7 +194,7 @@ export default function App() {
     // Reset viewport to default position
     setStageViewport({ x: 0, y: 0, scale: 1 })
     setConfirmingNew(false)
-  }, [resetDocument, clearSession, setStageViewport])
+  }, [nodes, canvasSize, canvasBackground, generateThumbnail, saveToHistory, loadHistory, resetDocument, clearSession, setStageViewport])
 
   const handleNewDocument = useCallback(() => {
     if (nodes.length > 0) {
@@ -167,6 +203,23 @@ export default function App() {
       executeNewDocument()
     }
   }, [nodes.length, executeNewDocument])
+
+  const handleRestoreDocument = useCallback(async (id) => {
+    const doc = await loadDocument(id)
+    if (!doc) return
+    // Save current state to history first
+    if (nodes.length > 0) {
+      const thumbnail = await generateThumbnail()
+      await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail)
+    }
+    // Restore the selected document
+    replaceNodes(doc.nodes)
+    setCanvasSize(doc.canvasSize)
+    setCanvasBackground(doc.canvasBackground)
+    setStageViewport({ x: 0, y: 0, scale: 1 })
+    setShowMobileHistory(false)
+    setHistoryEntries(await loadHistory())
+  }, [loadDocument, loadHistory, saveToHistory, generateThumbnail, nodes, canvasSize, canvasBackground, replaceNodes, setCanvasSize, setCanvasBackground, setStageViewport])
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   // Placed after cropMode/textMode declarations to avoid temporal dead zone.
@@ -365,38 +418,84 @@ export default function App() {
         version={version}
         onShare={upload}
         uploadStatus={uploadStatus}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen((o) => !o)}
+        onOpenHistory={() => setShowMobileHistory(true)}
       />
 
-      {/* Canvas + layer panel live in the same relative container */}
-      <div className="flex-1 overflow-hidden relative">
-        <CanvasStage
-          stageRef={stageRef}
-          canvasSize={canvasSize}
-          canvasBackground={canvasBackground}
-          canvasResizeMode={canvasResizeMode}
-          nodes={nodes}
-          selectedNodeId={selectedNodeId}
-          stageViewport={stageViewport}
-          setStageViewport={setStageViewport}
-          selectNode={selectNode}
-          updateNode={updateNodeWithHistory}
-          setCanvasSize={setCanvasSize}
-          replaceNodes={replaceNodes}
-          onResizeCommit={setCommittedCanvasSize}
-          cropMode={cropMode}
-          cropRect={cropRect}
-          setCropRect={setCropRect}
-          textPlaceMode={textPlaceMode}
-          onPlaceText={handlePlaceText}
-          editingNodeId={editingNodeId}
-          onStartEditText={handleStartEditText}
-          onTextChange={(text) => editingNodeId && updateNode(editingNodeId, { text })}
-          onConfirmTextEdit={handleConfirmTextEdit}
-          onCancelTextEdit={handleCancelTextEdit}
-        />
+      {/* Canvas area + desktop sidebar */}
+      <div className="flex-1 overflow-hidden flex">
 
-        {showLayerPanel && (
-          <LayerPanel
+        {/* Canvas + mobile overlays */}
+        <div className="flex-1 overflow-hidden relative">
+          <CanvasStage
+            stageRef={stageRef}
+            canvasSize={canvasSize}
+            canvasBackground={canvasBackground}
+            canvasResizeMode={canvasResizeMode}
+            nodes={nodes}
+            selectedNodeId={selectedNodeId}
+            stageViewport={stageViewport}
+            setStageViewport={setStageViewport}
+            selectNode={selectNode}
+            updateNode={updateNodeWithHistory}
+            setCanvasSize={setCanvasSize}
+            replaceNodes={replaceNodes}
+            onResizeCommit={setCommittedCanvasSize}
+            cropMode={cropMode}
+            cropRect={cropRect}
+            setCropRect={setCropRect}
+            textPlaceMode={textPlaceMode}
+            onPlaceText={handlePlaceText}
+            editingNodeId={editingNodeId}
+            onStartEditText={handleStartEditText}
+            onTextChange={(text) => editingNodeId && updateNode(editingNodeId, { text })}
+            onConfirmTextEdit={handleConfirmTextEdit}
+            onCancelTextEdit={handleCancelTextEdit}
+          />
+
+          {/* Mobile layer panel overlay (desktop uses sidebar) */}
+          {showLayerPanel && (
+            <div className="sm:hidden">
+              <LayerPanel
+                nodes={nodes}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={selectNode}
+                onToggleVisible={(id) => {
+                  const node = nodes.find((n) => n.id === id)
+                  if (node) { pushHistory(); updateNode(id, { visible: !node.visible }) }
+                }}
+                onReorder={(newNodes) => { pushHistory(); reorderNodes(newNodes) }}
+                onClose={() => setShowLayerPanel(false)}
+              />
+            </div>
+          )}
+
+          {/* Mobile history overlay */}
+          {showMobileHistory && (
+            <div className="sm:hidden absolute bottom-0 left-0 right-0 flex flex-col bg-[#24272f] border-t border-white/10 rounded-t-xl shadow-2xl" style={{ maxHeight: '50%' }}>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 shrink-0">
+                <span className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Clock size={13} className="text-white/40" /> History
+                </span>
+                <button
+                  onClick={() => setShowMobileHistory(false)}
+                  className="text-white/40 hover:text-white p-1 rounded transition-colors"
+                >
+                  <X size={16} strokeWidth={2.5} />
+                </button>
+              </div>
+              <HistoryPanel
+                entries={historyEntries}
+                onRestore={handleRestoreDocument}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Desktop sidebar */}
+        {sidebarOpen && (
+          <DesktopSidebar
             nodes={nodes}
             selectedNodeId={selectedNodeId}
             onSelectNode={selectNode}
@@ -405,7 +504,8 @@ export default function App() {
               if (node) { pushHistory(); updateNode(id, { visible: !node.visible }) }
             }}
             onReorder={(newNodes) => { pushHistory(); reorderNodes(newNodes) }}
-            onClose={() => setShowLayerPanel(false)}
+            historyEntries={historyEntries}
+            onRestoreDocument={handleRestoreDocument}
           />
         )}
       </div>
@@ -562,7 +662,7 @@ export default function App() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-white font-semibold text-base mb-2">Start a new document?</h2>
-            <p className="text-white/40 text-sm mb-6">All unsaved changes will be lost.</p>
+            <p className="text-white/40 text-sm mb-6">Your current document will be saved to History.</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmingNew(false)}

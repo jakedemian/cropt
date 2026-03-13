@@ -1,4 +1,4 @@
-# Editor — Future Plans & Notes
+# Editor — Plans & Notes
 
 ## UX Improvements
 
@@ -7,3 +7,9 @@ The default blank 1000x1000 canvas isn't the right first impression. Need a seco
 
 ### Image Import & Initial Crop
 The cropping behavior immediately after importing an image feels awkward. Needs revisiting.
+
+---
+
+## Known Bugs
+
+*(none)*

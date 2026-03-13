@@ -124,5 +124,26 @@ export function useDocumentHistory() {
     }
   }, [])
 
-  return { saveToHistory, loadHistory, loadDocument }
+  // Update only the savedAt timestamp of an existing entry (moves it to the top
+  // of the list without changing its content). Used when restoring a document
+  // so the restored entry sorts above the one that was just saved.
+  const touchEntry = useCallback(async (id) => {
+    try {
+      const db = await openDB()
+      await new Promise((resolve, reject) => {
+        const tx    = db.transaction(STORE_NAME, 'readwrite')
+        const store = tx.objectStore(STORE_NAME)
+        const req   = store.get(id)
+        req.onsuccess = () => {
+          if (req.result) store.put({ ...req.result, savedAt: Date.now() })
+        }
+        tx.oncomplete = resolve
+        tx.onerror    = () => reject(tx.error)
+      })
+    } catch (err) {
+      console.warn('[history] touch failed:', err)
+    }
+  }, [])
+
+  return { saveToHistory, loadHistory, loadDocument, touchEntry }
 }

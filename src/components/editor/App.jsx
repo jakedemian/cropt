@@ -58,7 +58,7 @@ export default function App() {
   } = useCanvasState()
 
   const { save, loadSession, clearSession } = useSessionPersistence()
-  const { saveToHistory, loadHistory, loadDocument } = useDocumentHistory()
+  const { saveToHistory, loadHistory, loadDocument, touchEntry } = useDocumentHistory()
 
   // Tracks which history entry the current document came from (null = fresh doc).
   // When saving back to history, we update this entry in place rather than
@@ -230,15 +230,18 @@ export default function App() {
       const thumbnail = await generateThumbnail()
       await saveToHistory({ nodes, canvasSize, canvasBackground }, thumbnail, currentHistoryIdRef.current)
     }
-    // Restore the selected document and track which entry it came from
+    // Restore the selected document and track which entry it came from.
+    // Touch it so its savedAt becomes the newest — it sorts to the top above
+    // the entry we just saved for the document we were on.
     replaceNodes(doc.nodes)
     setCanvasSize(doc.canvasSize)
     setCanvasBackground(doc.canvasBackground)
     setStageViewport({ x: 0, y: 0, scale: 1 })
     setShowMobileHistory(false)
     currentHistoryIdRef.current = id
+    await touchEntry(id)
     setHistoryEntries(await loadHistory())
-  }, [loadDocument, loadHistory, saveToHistory, generateThumbnail, nodes, canvasSize, canvasBackground, replaceNodes, setCanvasSize, setCanvasBackground, setStageViewport])
+  }, [loadDocument, loadHistory, saveToHistory, touchEntry, generateThumbnail, nodes, canvasSize, canvasBackground, replaceNodes, setCanvasSize, setCanvasBackground, setStageViewport])
 
   // ── Raster layer creation ──────────────────────────────────────────────────
   const handleNewRasterLayer = useCallback(() => {

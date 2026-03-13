@@ -155,7 +155,7 @@ export default function BottomToolbar({
           onClick={onConfirmCrop}
           className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
         >
-          <Check size={14} /> Apply Crop
+          <Check size={14} /> Apply Trim
         </button>
       </footer>
     )
@@ -352,10 +352,10 @@ export default function BottomToolbar({
           <button
             onClick={onEnterCrop}
             disabled={selectedNode.rotation !== 0}
-            title={selectedNode.rotation !== 0 ? 'Flatten rotation before cropping' : 'Crop image'}
+            title={selectedNode.rotation !== 0 ? 'Flatten rotation before trimming' : 'Trim image'}
             className="flex items-center gap-1.5 px-3 py-2 rounded text-sm bg-[#363b44] hover:bg-[#424850] transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Scissors size={14} /> Crop
+            <Scissors size={14} /> Trim
           </button>
 
           <button

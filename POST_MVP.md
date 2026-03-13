@@ -88,6 +88,25 @@ This is a credible claim that most mainstream social platforms can never make. P
 - The meme editor gives Cropt a unique hook that a plain social clone wouldn't have
 - Open source contributors could accelerate v2+ feature development
 
+### User Acquisition & Cold Start Strategy
+
+The core advantage: the editor is useful before any community exists. Unlike pure social networks, Cropt has a standalone tool that works on day one with zero other users. That's the wedge.
+
+**Phase 1 — Tool first, community second**
+Don't launch a social network. Launch the best meme editor on the web. Make it so good people use it just to create, even if they never post publicly. Every share to an external platform is a free impression. The feed is a bonus, not the product.
+
+**Phase 2 — Seed the feed yourself**
+The feed can't look dead in the early days. Actively create and post quality content. Five genuinely funny memes is better than fifty mediocre ones. Rope in trusted friends to help seed.
+
+**Phase 3 — Find the first real community**
+Don't chase a million users — find a few hundred passionate early adopters. The open source / privacy angle is the best acquisition channel here: Hacker News, dev communities, privacy-focused forums. These people care about "we show you the code," give honest feedback, and are talkers — they'll bring others.
+
+**Phase 4 — Viral loops**
+Every meme shared externally should make it obvious where it came from. Subtle watermark or branding, clean OG preview, a "make your own at cropt.app" call to action on the viewer page. Each share is an ad.
+
+**Editor as the long-term hook**
+A genuinely superior editor is the highest-leverage investment. If Cropt is the most fun and capable meme creation tool available — especially on mobile — people come for the tool and stay for the community. Think about what meme creation is currently missing: templates, text effects, AI-assisted captions, reaction image search, etc.
+
 ### Governance Model
 
 Follows the Linux kernel governance model:

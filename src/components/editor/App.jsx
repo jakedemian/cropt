@@ -198,7 +198,7 @@ export default function App() {
   // (e.g. image-import auto-expand).
   const [committedCanvasSize, setCommittedCanvasSize] = useState(canvasSize)
   useEffect(() => {
-    if (!canvasResizeMode) setCommittedCanvasSize(canvasSize) // eslint-disable-line react-hooks/set-state-in-effect
+    if (!canvasResizeMode) setCommittedCanvasSize(canvasSize)
   }, [canvasSize, canvasResizeMode])
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
@@ -207,14 +207,17 @@ export default function App() {
   const [cropMode, setCropMode] = useState(false)
   const [cropRect, setCropRect] = useState(null) // { x, y, width, height } canvas coords
 
-  // ── Draw mode ──────────────────────────────────────────────────────────────
-  const [drawMode, setDrawMode] = useState(false)
-  const [drawTool, setDrawTool] = useState('brush')   // 'brush' | 'eraser'
+  // ── Unified tool state ─────────────────────────────────────────────────────
+  const [activeTool, setActiveTool] = useState('select') // 'select' | 'brush' | 'eraser' | 'text'
   const [brushColor, setBrushColor] = useState('#000000')
   const [brushSize, setBrushSize] = useState(20)
 
+  // Derived — passed to CanvasStage (no changes needed there)
+  const drawMode = activeTool === 'brush' || activeTool === 'eraser'
+  const drawTool = activeTool === 'eraser' ? 'eraser' : 'brush'
+  const textPlaceMode = activeTool === 'text'
+
   // ── Text mode ──────────────────────────────────────────────────────────────
-  const [textPlaceMode, setTextPlaceMode] = useState(false)
   const [editingNodeId, setEditingNodeId] = useState(null)
   // Snapshot of state (nodes, canvasSize, canvasBackground) taken before editing
   // started — used to push history on confirm, or restore on cancel.
@@ -236,10 +239,9 @@ export default function App() {
       // Exit any active sub-mode before wiping state
       setCropMode(false)
       setCropRect(null)
-      setTextPlaceMode(false)
+      setActiveTool('select')
       setEditingNodeId(null)
       setEditingOrigState(null)
-      setDrawMode(false)
       setShowLayerPanel(false)
       setShowMobileHistory(false)
       // Reset all canvas state and history
@@ -304,11 +306,53 @@ export default function App() {
     })
   }, [pushHistory, addNode, nodes, canvasSize])
 
+  // ── Unified tool switching ─────────────────────────────────────────────────
+  const handleSetActiveTool = useCallback((tool) => {
+    if (tool === 'brush' || tool === 'eraser') {
+      // Ensure a raster node is selected to draw on
+      if (selectedNode?.type !== 'raster') {
+        const id = uuidv4()
+        const count = nodes.filter((n) => n.type === 'raster').length + 1
+        pushHistory()
+        addNode({
+          id,
+          type: 'raster',
+          name: `Layer ${count}`,
+          x: 0,
+          y: 0,
+          width: canvasSize.width,
+          height: canvasSize.height,
+          dataUrl: null,
+          opacity: 1,
+          visible: true,
+          scaleX: 1,
+          scaleY: 1,
+          rotation: 0,
+        })
+        selectNode(id)
+      }
+      setActiveTool(tool)
+    } else if (tool === 'text') {
+      setActiveTool('text')
+      selectNode(null)
+      setShowLayerPanel(false)
+    } else {
+      setActiveTool('select')
+    }
+  }, [selectedNode, nodes, canvasSize, pushHistory, addNode, selectNode])
+
+  // Reset to select when a non-raster node is clicked during draw mode
+  useEffect(() => {
+    if ((activeTool === 'brush' || activeTool === 'eraser') && selectedNode?.type !== 'raster') {
+      setActiveTool('select')
+    }
+  }, [selectedNodeId]) // eslint-disable-line react-hooks/exhaustive-deps -- intentional: only react to selection changes
+
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   // Placed after cropMode/textMode declarations to avoid temporal dead zone.
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape' && drawMode) { setDrawMode(false); return }
+      if (e.key === 'Escape' && drawMode) { setActiveTool('select'); return }
       if (canvasResizeMode || cropMode || editingNodeId || drawMode) return
       if (!(e.metaKey || e.ctrlKey)) return
       if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
@@ -393,14 +437,8 @@ export default function App() {
 
   // ── Text placement handlers ────────────────────────────────────────────────
 
-  const handleEnterTextPlaceMode = () => {
-    setTextPlaceMode(true)
-    setShowLayerPanel(false)
-    selectNode(null)
-  }
-
   const handleCancelTextPlace = () => {
-    setTextPlaceMode(false)
+    setActiveTool('select')
   }
 
   // Called by CanvasStage when the user clicks in text placement mode.
@@ -432,7 +470,7 @@ export default function App() {
     setEditingOrigState({ nodes, canvasSize, canvasBackground })
     addNode(textNode)
     selectNode(id)
-    setTextPlaceMode(false)
+    setActiveTool('select')
     setEditingNodeId(id)
   }
 
@@ -635,7 +673,8 @@ export default function App() {
         onEnterCrop={handleEnterCrop}
         onConfirmCrop={handleConfirmCrop}
         onCancelCrop={handleCancelCrop}
-        onEnterTextPlaceMode={handleEnterTextPlaceMode}
+        activeTool={activeTool}
+        onSetActiveTool={handleSetActiveTool}
         onCancelTextPlace={handleCancelTextPlace}
         onEnterTextEdit={() => selectedNode?.type === 'text' && handleStartEditText(selectedNode.id)}
         onConfirmTextEdit={handleConfirmTextEdit}
@@ -644,13 +683,8 @@ export default function App() {
         onTextStyleChange={(updates) => selectedNode && updateNode(selectedNode.id, updates)}
         editingNode={nodes.find((n) => n.id === editingNodeId) ?? null}
         onFontChange={(fontFamily) => editingNodeId && updateNode(editingNodeId, { fontFamily })}
-        drawMode={drawMode}
-        drawTool={drawTool}
         brushColor={brushColor}
         brushSize={brushSize}
-        onEnterDraw={() => setDrawMode(true)}
-        onExitDraw={() => setDrawMode(false)}
-        onDrawToolChange={setDrawTool}
         onBrushColorChange={setBrushColor}
         onBrushSizeChange={setBrushSize}
       />

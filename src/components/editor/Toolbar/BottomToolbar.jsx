@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Check, ImagePlus, Type, Layers, Maximize, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser } from 'lucide-react'
+import { X, Check, ImagePlus, Layers, Maximize, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type } from 'lucide-react'
 
 const BG_OPTIONS = [
   { value: '#ffffff', title: 'White',       style: { background: '#fff', border: '1.5px solid rgba(255,255,255,0.2)' } },
@@ -20,10 +20,10 @@ const BG_OPTIONS = [
   { value: 'transparent', title: 'Transparent', style: { background: 'repeating-conic-gradient(#363b44 0% 25%, #24272f 0% 50%) 0 0 / 8px 8px', border: '1.5px solid rgba(255,255,255,0.2)' } },
 ]
 
+
 export default function BottomToolbar({
   canvasResizeMode,
   cropMode,
-  textPlaceMode,
   isTextEditing,
   selectedNode,
   canvasSize,
@@ -42,25 +42,21 @@ export default function BottomToolbar({
   onConfirmCrop,
   onCancelCrop,
   onOpacityStart,
-  // Text mode
-  onEnterTextPlaceMode,
+  // Tool switching
+  activeTool,
+  onSetActiveTool,
   onCancelTextPlace,
+  // Text edit mode
   onEnterTextEdit,
   onConfirmTextEdit,
   onCancelTextEdit,
   onTextStyleStart,
   onTextStyleChange,
-  // Font selector (editing state only)
   editingNode,
   onFontChange,
-  // Draw mode
-  drawMode,
-  drawTool,
+  // Brush config
   brushColor,
   brushSize,
-  onEnterDraw,
-  onExitDraw,
-  onDrawToolChange,
   onBrushColorChange,
   onBrushSizeChange,
 }) {
@@ -82,69 +78,6 @@ export default function BottomToolbar({
 
   const isBold = selectedNode?.fontStyle?.includes('bold')
   const isItalic = selectedNode?.fontStyle?.includes('italic')
-
-  // While drawing, show brush controls
-  if (drawMode) {
-    return (
-      <footer
-        className="flex items-center gap-2 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5 overflow-x-auto"
-        style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        <button
-          onClick={() => onDrawToolChange('brush')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-            drawTool === 'brush' ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#363b44] text-white hover:bg-[#424850]'
-          }`}
-        >
-          <Paintbrush size={14} /> Brush
-        </button>
-        <button
-          onClick={() => onDrawToolChange('eraser')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-            drawTool === 'eraser' ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#363b44] text-white hover:bg-[#424850]'
-          }`}
-        >
-          <Eraser size={14} /> Eraser
-        </button>
-
-        <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
-
-        {drawTool === 'brush' && (
-          <input
-            type="color"
-            value={brushColor}
-            onChange={(e) => onBrushColorChange(e.target.value)}
-            className="w-8 h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
-            title="Brush colour"
-            style={{ padding: '1px' }}
-          />
-        )}
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-white/40 whitespace-nowrap">Size</span>
-          <input
-            type="range"
-            min={2}
-            max={120}
-            step={1}
-            value={brushSize}
-            onChange={(e) => onBrushSizeChange(Number(e.target.value))}
-            className="w-24 accent-[#0fff95]"
-          />
-          <span className="text-xs text-white/40 tabular-nums w-8">{brushSize}px</span>
-        </div>
-
-        <div className="flex-1" />
-
-        <button
-          onClick={onExitDraw}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors shrink-0"
-        >
-          <Check size={14} /> Done
-        </button>
-      </footer>
-    )
-  }
 
   // While resizing, show only confirm / cancel
   if (canvasResizeMode) {
@@ -229,7 +162,7 @@ export default function BottomToolbar({
   }
 
   // While in text placement mode, show instructions and cancel
-  if (textPlaceMode) {
+  if (activeTool === 'text') {
     return (
       <footer className="flex items-center justify-center gap-3 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
         <span className="text-sm text-white/60">Tap on the canvas to place text</span>
@@ -245,6 +178,8 @@ export default function BottomToolbar({
 
   // ── Normal toolbar ──────────────────────────────────────────────────────────
 
+  const isDrawing = activeTool === 'brush' || activeTool === 'eraser'
+
   return (
     <footer
       className="flex items-center gap-2 px-4 h-14 bg-[#24272f] text-white shrink-0 overflow-x-auto border-t border-white/5"
@@ -255,38 +190,86 @@ export default function BottomToolbar({
         onClick={onAddImage}
         className="flex items-center gap-1 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
       >
-        <ImagePlus size={14} /> <span className="hidden sm:inline">Import Image</span>
+        <ImagePlus size={14} /> <span className="hidden sm:inline">Import</span>
       </button>
 
-      <button
-        onClick={onEnterTextPlaceMode}
-        className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
-      >
-        <Type size={14} /> <span className="hidden sm:inline">Text</span>
-      </button>
+      <div className="w-px h-6 bg-white/10 mx-0.5 shrink-0" />
+
+      {/* Tool selector */}
+      <div className="flex items-center bg-[#2d3139] rounded p-0.5 gap-0.5 shrink-0">
+        <button title="Select" onClick={() => onSetActiveTool('select')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'select' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
+          <MousePointer2 size={15} />
+        </button>
+        <button title="Brush" onClick={() => onSetActiveTool('brush')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'brush' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
+          <Paintbrush size={15} />
+        </button>
+        <button title="Eraser" onClick={() => onSetActiveTool('eraser')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'eraser' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
+          <Eraser size={15} />
+        </button>
+        <button title="Text" onClick={() => onSetActiveTool('text')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'text' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
+          <Type size={15} />
+        </button>
+      </div>
+
+      {/* Brush controls — inline when draw tool is active */}
+      {isDrawing && (
+        <>
+          <div className="w-px h-6 bg-white/10 mx-0.5 shrink-0" />
+
+          {activeTool === 'brush' && (
+            <input
+              type="color"
+              value={brushColor}
+              onChange={(e) => onBrushColorChange(e.target.value)}
+              className="w-8 h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
+              title="Brush colour"
+              style={{ padding: '1px' }}
+            />
+          )}
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-white/40 whitespace-nowrap">Size</span>
+            <input
+              type="range"
+              min={2}
+              max={120}
+              step={1}
+              value={brushSize}
+              onChange={(e) => onBrushSizeChange(Number(e.target.value))}
+              className="w-24 accent-[#0fff95]"
+            />
+            <span className="text-xs text-white/40 tabular-nums w-8">{brushSize}px</span>
+          </div>
+        </>
+      )}
 
       {/* Layers toggle — hidden on desktop (handled by sidebar) */}
-      <button
-        onClick={onToggleLayerPanel}
-        className={`sm:hidden flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-          showLayerPanel
-            ? 'bg-[#424850] text-white'
-            : 'bg-[#363b44] text-white hover:bg-[#424850]'
-        }`}
-      >
-        <Layers size={14} />
-      </button>
+      {!isDrawing && (
+        <button
+          onClick={onToggleLayerPanel}
+          className={`sm:hidden flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+            showLayerPanel
+              ? 'bg-[#424850] text-white'
+              : 'bg-[#363b44] text-white hover:bg-[#424850]'
+          }`}
+        >
+          <Layers size={14} />
+        </button>
+      )}
 
       {/* Resize + Canvas dimensions */}
-      <button
-        onClick={onEnterResize}
-        className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
-        title="Resize canvas"
-      >
-        <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
-      </button>
-      {/* Background picker — visible when nothing is selected */}
-      {!selectedNode && (
+      {!isDrawing && (
+        <button
+          onClick={onEnterResize}
+          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+          title="Resize canvas"
+        >
+          <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
+        </button>
+      )}
+
+      {/* Background picker — visible when nothing is selected and not drawing */}
+      {!isDrawing && !selectedNode && (
         <>
           {/* Desktop: inline */}
           <div className="hidden sm:contents">
@@ -356,8 +339,10 @@ export default function BottomToolbar({
         </>
       )}
 
+      {/* Per-node controls — only shown when select tool is active */}
+
       {/* Per-image controls */}
-      {selectedNode?.type === 'image' && (
+      {activeTool === 'select' && selectedNode?.type === 'image' && (
         <>
           <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
 
@@ -401,7 +386,7 @@ export default function BottomToolbar({
       )}
 
       {/* Per-text controls */}
-      {selectedNode?.type === 'text' && (
+      {activeTool === 'select' && selectedNode?.type === 'text' && (
         <>
           <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
 
@@ -525,16 +510,9 @@ export default function BottomToolbar({
       )}
 
       {/* Per-raster-layer controls */}
-      {selectedNode?.type === 'raster' && (
+      {activeTool === 'select' && selectedNode?.type === 'raster' && (
         <>
           <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
-
-          <button
-            onClick={onEnterDraw}
-            className="flex items-center gap-1.5 px-3 py-2 rounded text-sm bg-[#363b44] hover:bg-[#424850] transition-colors whitespace-nowrap"
-          >
-            <Paintbrush size={14} /> Draw
-          </button>
 
           <button
             onClick={onDelete}

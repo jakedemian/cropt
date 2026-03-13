@@ -8,6 +8,7 @@ import TextEditOverlay from './TextEditOverlay'
 import TransformWrapper from './TransformWrapper'
 import CanvasResizeHandles from './CanvasResizeHandles'
 import CropOverlay from './CropOverlay'
+import CanvasCropHandles from './CanvasCropHandles'
 
 const MIN_SCALE = 0.1
 const MAX_SCALE = 8
@@ -69,6 +70,11 @@ export default function CanvasStage({
   onMarqueeStart,
   onMarqueeEnd,
   onMarqueeReady,   // (rect | null) → called whenever selection is finalized or cleared
+  // canvas-crop-mode props
+  canvasCropMode,
+  canvasCropRect,
+  canvasCropBounds,
+  onCanvasCropRectChange,
 }) {
   const containerRef = useRef(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
@@ -199,7 +205,7 @@ export default function CanvasStage({
   useEffect(() => {
     if (marqueeMode) return
     stampMarqueeFloat()  // eslint-disable-line react-hooks/set-state-in-effect
-    setMarqueeRect(null) // eslint-disable-line react-hooks/set-state-in-effect
+    setMarqueeRect(null)
     marqueePhaseRef.current = 'idle'
   }, [marqueeMode]) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs only on marqueeMode change
 
@@ -540,7 +546,7 @@ export default function CanvasStage({
     [selectNode, stageRef, textPlaceMode]
   )
 
-  const isInteractive = !canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode
+  const isInteractive = !canvasResizeMode && !cropMode && !canvasCropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode
 
   // Find the node currently being edited (for the overlay)
   const editingNode = editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null
@@ -557,11 +563,11 @@ export default function CanvasStage({
             y={stageViewport.y}
             scaleX={stageViewport.scale}
             scaleY={stageViewport.scale}
-            draggable={!canvasResizeMode && !cropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode}
+            draggable={!canvasResizeMode && !cropMode && !canvasCropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode}
             onDragEnd={handleStageDragEnd}
-            onWheel={canvasResizeMode || cropMode || drawMode ? undefined : handleWheel}
-            onTouchMove={canvasResizeMode || cropMode || drawMode ? undefined : handleTouchMove}
-            onTouchEnd={canvasResizeMode || cropMode || drawMode ? undefined : handleTouchEnd}
+            onWheel={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleWheel}
+            onTouchMove={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleTouchMove}
+            onTouchEnd={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleTouchEnd}
             onClick={handleStageClick}
             onTap={handleStageClick}
           >
@@ -644,7 +650,7 @@ export default function CanvasStage({
               <TransformWrapper
                 stageRef={stageRef}
                 nodes={nodes}
-                selectedNodeId={canvasResizeMode || cropMode || editingNodeId ? null : selectedNodeId}
+                selectedNodeId={canvasResizeMode || cropMode || canvasCropMode || editingNodeId ? null : selectedNodeId}
                 onChange={(updates) => selectedNodeId && updateNode(selectedNodeId, updates)}
                 imageLoadCount={imageLoadCount}
               />
@@ -671,6 +677,17 @@ export default function CanvasStage({
               cropRect={cropRect}
               setCropRect={setCropRect}
               stageViewport={stageViewport}
+            />
+          )}
+
+          {/* DOM overlay: canvas crop handles */}
+          {canvasCropMode && canvasCropRect && canvasCropBounds && (
+            <CanvasCropHandles
+              cropRect={canvasCropRect}
+              cropBounds={canvasCropBounds}
+              canvasSize={canvasSize}
+              stageViewport={stageViewport}
+              onCropRectChange={onCanvasCropRectChange}
             />
           )}
 
@@ -710,7 +727,7 @@ export default function CanvasStage({
           )}
 
           {/* DOM overlay: marquee selection tool */}
-          {marqueeMode && (
+          {marqueeMode && !canvasCropMode && (
             <div
               className="absolute inset-0"
               style={{ cursor: 'crosshair', zIndex: 10, touchAction: 'none' }}

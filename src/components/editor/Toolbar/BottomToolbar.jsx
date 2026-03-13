@@ -36,7 +36,10 @@ export default function BottomToolbar({
   onSetBackground,
   onToggleLayerPanel,
   marqueeSelection,
-  onCropToSelection,
+  canvasCropMode,
+  onEnterCanvasCrop,
+  onConfirmCanvasCrop,
+  onCancelCanvasCrop,
   onEnterResize,
   onConfirmResize,
   onCancelResize,
@@ -143,7 +146,7 @@ export default function BottomToolbar({
     )
   }
 
-  // While cropping, show only confirm / cancel
+  // While trimming (per-image crop), show only confirm / cancel
   if (cropMode) {
     return (
       <footer className="flex items-center justify-center gap-3 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
@@ -158,6 +161,26 @@ export default function BottomToolbar({
           className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
         >
           <Check size={14} /> Apply Trim
+        </button>
+      </footer>
+    )
+  }
+
+  // While in canvas crop mode, show only confirm / cancel
+  if (canvasCropMode) {
+    return (
+      <footer className="flex items-center justify-center gap-3 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
+        <button
+          onClick={onCancelCanvasCrop}
+          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
+        >
+          <X size={14} /> Cancel
+        </button>
+        <button
+          onClick={onConfirmCanvasCrop}
+          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
+        >
+          <Check size={14} /> Apply Crop
         </button>
       </footer>
     )
@@ -262,25 +285,26 @@ export default function BottomToolbar({
         </button>
       )}
 
-      {/* Resize + Crop */}
+      {/* Resize */}
       {!isDrawing && (
-        <>
-          <button
-            onClick={onEnterResize}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
-            title="Resize canvas"
-          >
-            <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
-          </button>
-          <button
-            onClick={onCropToSelection}
-            disabled={!marqueeSelection}
-            title={marqueeSelection ? 'Crop canvas to selection' : 'Draw a selection first'}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Crop size={14} /> <span className="hidden sm:inline">Crop</span>
-          </button>
-        </>
+        <button
+          onClick={onEnterResize}
+          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+          title="Resize canvas"
+        >
+          <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
+        </button>
+      )}
+
+      {/* Crop — visible when a node or marquee selection exists */}
+      {!isDrawing && (selectedNode || marqueeSelection) && (
+        <button
+          onClick={onEnterCanvasCrop}
+          title="Crop canvas to selection"
+          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+        >
+          <Crop size={14} /> <span className="hidden sm:inline">Crop</span>
+        </button>
       )}
 
       {/* Background picker — visible when nothing is selected and not drawing */}

@@ -231,16 +231,53 @@ export default function App() {
     if (activeTool !== 'marquee') setMarqueeSelection(null)
   }, [activeTool])
 
-  const handleCropToSelection = useCallback(async () => {
-    if (!marqueeSelection) return
-    const { x: sx, y: sy, width: sw, height: sh } = marqueeSelection
+  // ── Canvas crop mode ────────────────────────────────────────────────────────
+  const [canvasCropMode, setCanvasCropMode] = useState(false)
+  const [canvasCropRect, setCanvasCropRect] = useState(null)   // { x, y, width, height } canvas coords
+  const [canvasCropBounds, setCanvasCropBounds] = useState(null) // max allowed area (initial selection)
+
+  const handleEnterCanvasCrop = useCallback(() => {
+    let bounds
+    if (marqueeSelection) {
+      const mx = Math.max(0, marqueeSelection.x)
+      const my = Math.max(0, marqueeSelection.y)
+      const mr = Math.min(canvasSize.width,  marqueeSelection.x + marqueeSelection.width)
+      const mb = Math.min(canvasSize.height, marqueeSelection.y + marqueeSelection.height)
+      if (mr <= mx || mb <= my) return
+      bounds = { x: Math.round(mx), y: Math.round(my), width: Math.round(mr - mx), height: Math.round(mb - my) }
+    } else if (selectedNode) {
+      const absScaleX = Math.abs(selectedNode.scaleX ?? 1)
+      const absScaleY = Math.abs(selectedNode.scaleY ?? 1)
+      const nw = selectedNode.width  * absScaleX
+      const nh = selectedNode.height * absScaleY
+      const nx = Math.max(0, selectedNode.x)
+      const ny = Math.max(0, selectedNode.y)
+      const nr = Math.min(canvasSize.width,  selectedNode.x + nw)
+      const nb = Math.min(canvasSize.height, selectedNode.y + nh)
+      if (nr <= nx || nb <= ny) {
+        bounds = { x: 0, y: 0, width: canvasSize.width, height: canvasSize.height }
+      } else {
+        bounds = { x: Math.round(nx), y: Math.round(ny), width: Math.round(nr - nx), height: Math.round(nb - ny) }
+      }
+    } else {
+      return
+    }
+    if (bounds.width < 1 || bounds.height < 1) return
+    setCanvasCropBounds(bounds)
+    setCanvasCropRect({ ...bounds })
+    setCanvasCropMode(true)
+    setShowLayerPanel(false)
+  }, [marqueeSelection, selectedNode, canvasSize])
+
+  const handleConfirmCanvasCrop = useCallback(async () => {
+    if (!canvasCropRect) return
+    const { x: sx, y: sy, width: sw, height: sh } = canvasCropRect
     const newW = Math.round(sw)
     const newH = Math.round(sh)
     if (newW < 1 || newH < 1) return
 
     pushSnapshot({ nodes, canvasSize, canvasBackground })
 
-    // Shift every node by (-sx, -sy) then clip to the new bounds
     const shifted = nodes.map((n) => ({ ...n, x: n.x - sx, y: n.y - sy }))
     const results = await Promise.all(
       shifted.map((n) => {
@@ -253,9 +290,18 @@ export default function App() {
     setCanvasSize({ width: newW, height: newH })
     replaceNodes(valid)
     if (selectedNodeId && !valid.find((n) => n.id === selectedNodeId)) selectNode(null)
-    setActiveTool('select')
+    setCanvasCropMode(false)
+    setCanvasCropRect(null)
+    setCanvasCropBounds(null)
     setMarqueeSelection(null)
-  }, [marqueeSelection, nodes, canvasSize, canvasBackground, pushSnapshot, setCanvasSize, replaceNodes, selectedNodeId, selectNode])
+    setActiveTool('select')
+  }, [canvasCropRect, nodes, canvasSize, canvasBackground, pushSnapshot, setCanvasSize, replaceNodes, selectedNodeId, selectNode])
+
+  const handleCancelCanvasCrop = useCallback(() => {
+    setCanvasCropMode(false)
+    setCanvasCropRect(null)
+    setCanvasCropBounds(null)
+  }, [])
 
   // ── New document ───────────────────────────────────────────────────────────
   const [confirmingNew, setConfirmingNew] = useState(false)
@@ -273,6 +319,9 @@ export default function App() {
       // Exit any active sub-mode before wiping state
       setCropMode(false)
       setCropRect(null)
+      setCanvasCropMode(false)
+      setCanvasCropRect(null)
+      setCanvasCropBounds(null)
       setActiveTool('select')
       setEditingNodeId(null)
       setEditingOrigState(null)
@@ -389,7 +438,7 @@ export default function App() {
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape' && drawMode) { setActiveTool('select'); return }
-      if (canvasResizeMode || cropMode || editingNodeId || drawMode) return
+      if (canvasResizeMode || cropMode || canvasCropMode || editingNodeId || drawMode) return
       if (!(e.metaKey || e.ctrlKey)) return
       if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
       if (e.key === 'z' &&  e.shiftKey) { e.preventDefault(); redo() }
@@ -397,7 +446,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [undo, redo, canvasResizeMode, cropMode, editingNodeId, drawMode])
+  }, [undo, redo, canvasResizeMode, cropMode, canvasCropMode, editingNodeId, drawMode])
 
   // ── Paste image from clipboard (Ctrl+V / Cmd+V) ─────────────────────────
   useEffect(() => {
@@ -622,6 +671,10 @@ export default function App() {
             onMarqueeStart={pushHistory}
             onMarqueeEnd={(id, dataUrl) => updateNode(id, { dataUrl })}
             onMarqueeReady={setMarqueeSelection}
+            canvasCropMode={canvasCropMode}
+            canvasCropRect={canvasCropRect}
+            canvasCropBounds={canvasCropBounds}
+            onCanvasCropRectChange={setCanvasCropRect}
           />
 
           {/* Mobile layer panel overlay (desktop uses sidebar) */}
@@ -709,7 +762,10 @@ export default function App() {
         onSetBackground={(bg) => { pushHistory(); setCanvasBackground(bg) }}
         onToggleLayerPanel={() => setShowLayerPanel((p) => !p)}
         marqueeSelection={marqueeSelection}
-        onCropToSelection={handleCropToSelection}
+        canvasCropMode={canvasCropMode}
+        onEnterCanvasCrop={handleEnterCanvasCrop}
+        onConfirmCanvasCrop={handleConfirmCanvasCrop}
+        onCancelCanvasCrop={handleCancelCanvasCrop}
         onEnterResize={handleEnterResize}
         onConfirmResize={handleConfirmResize}
         onCancelResize={handleCancelResize}

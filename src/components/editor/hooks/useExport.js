@@ -30,6 +30,10 @@ export function useExport({ stageRef, canvasBackground, canvasSize, pixelRatio =
       stage.scaleX(1)
       stage.scaleY(1)
 
+      // Hide the Transformer so selection handles don't appear in the export
+      const transformer = stage.findOne('Transformer')
+      if (transformer) { transformer.visible(false); transformer.getLayer()?.batchDraw() }
+
       // Transparent background: remove the checkerboard before capture
       let bgRect = null
       let savedFillPatternImage = null
@@ -72,6 +76,7 @@ export function useExport({ stageRef, canvasBackground, canvasSize, pixelRatio =
         bgRect.fillPatternImage(savedFillPatternImage)
         stage.getLayers()[0]?.draw()
       }
+      if (transformer) { transformer.visible(true); transformer.getLayer()?.batchDraw() }
 
       return blob
     } finally {

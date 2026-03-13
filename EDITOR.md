@@ -12,4 +12,7 @@ The cropping behavior immediately after importing an image feels awkward. Needs 
 
 ## Known Bugs
 
-*(none)*
+| # | Description | Status |
+|---|-------------|--------|
+| 1 | **Flip + resize flip-flop** — If a node is flipped then resized via transform anchors, the image flips again on resize end. Resizing again flips it back. Toggles on every resize. | Open |
+| 2 | **Mobile tool chevron direction** — Chevron pointed right (collapsed) / left (expanded) instead of down (collapsed) / right (expanded). | Fixed |

@@ -216,6 +216,17 @@ Undo/redo uses snapshot-based history stored in refs. `pushHistory()` captures s
 
 ---
 
+## Bug Tracking Process
+
+Bugs are logged in the `Known Bugs` section of the relevant area file (`EDITOR.md`, `FEED.md`, `SOCIAL.md`).
+
+**Rules:**
+- When a bug is mentioned in any way, **first check if it's already logged**. If not, **logging it is the very first action** before any investigation or fixes.
+- When a bug is resolved, mark it as **Fixed** in the appropriate file.
+- **Never delete bug entries.** The user will manually request cleanups.
+
+---
+
 ## Testing Notes
 
 - No automated test suite yet

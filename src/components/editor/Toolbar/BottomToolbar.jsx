@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, ChevronRight, ChevronLeft } from 'lucide-react'
+import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, ChevronRight, ChevronDown } from 'lucide-react'
 
 const TOOLS = [
   { id: 'select',  title: 'Move',   Icon: MousePointer2 },
@@ -237,7 +237,7 @@ export default function BottomToolbar({
         onClick={() => setToolsExpanded((p) => !p)}
         title={toolsExpanded ? 'Hide tools' : 'Show tools'}
       >
-        {toolsExpanded ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+        {toolsExpanded ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
       </button>
 
       <div

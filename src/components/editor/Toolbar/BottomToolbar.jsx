@@ -14,6 +14,14 @@ const FONTS = [
 import { useState, useRef, useEffect } from 'react'
 import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect } from 'lucide-react'
 
+const TOOL_ICONS = {
+  select:  <MousePointer2 size={15} />,
+  marquee: <BoxSelect size={15} />,
+  brush:   <Paintbrush size={15} />,
+  eraser:  <Eraser size={15} />,
+  text:    <Type size={15} />,
+}
+
 const BG_OPTIONS = [
   { value: '#ffffff', title: 'White',       style: { background: '#fff', border: '1.5px solid rgba(255,255,255,0.2)' } },
   { value: '#000000', title: 'Black',       style: { background: '#000', border: '1.5px solid rgba(255,255,255,0.2)' } },
@@ -66,6 +74,7 @@ export default function BottomToolbar({
   onBrushSizeChange,
 }) {
   // ── Hooks must be declared before any early returns (Rules of Hooks) ───────
+  const [toolsExpanded, setToolsExpanded] = useState(false)
   const [bgOpen, setBgOpen] = useState(false)
   const bgBtnRef = useRef(null)
   const bgMenuRef = useRef(null)
@@ -220,23 +229,38 @@ export default function BottomToolbar({
 
       <div className="w-px h-6 bg-white/10 mx-0.5 shrink-0" />
 
-      {/* Tool selector */}
-      <div className="flex items-center bg-[#2d3139] rounded p-0.5 gap-0.5 shrink-0">
-        <button title="Move" onClick={() => onSetActiveTool('select')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'select' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
-          <MousePointer2 size={15} />
-        </button>
-        <button title="Select" onClick={() => onSetActiveTool('marquee')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'marquee' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
-          <BoxSelect size={15} />
-        </button>
-        <button title="Brush" onClick={() => onSetActiveTool('brush')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'brush' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
-          <Paintbrush size={15} />
-        </button>
-        <button title="Eraser" onClick={() => onSetActiveTool('eraser')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'eraser' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
-          <Eraser size={15} />
-        </button>
-        <button title="Text" onClick={() => onSetActiveTool('text')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === 'text' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}>
-          <Type size={15} />
-        </button>
+      {/* Tool selector — mobile: toggle button + collapsible list; desktop: always visible */}
+
+      {/* Mobile toggle: shows active tool icon, tapping expands/collapses the list */}
+      <button
+        className="sm:hidden w-8 h-8 flex items-center justify-center rounded bg-[#0fff95] text-[#24272f] shrink-0"
+        onClick={() => setToolsExpanded((p) => !p)}
+        title="Tools"
+      >
+        {TOOL_ICONS[activeTool]}
+      </button>
+
+      {/* Mobile expandable list */}
+      <div
+        className="sm:hidden overflow-hidden transition-all duration-200 ease-out shrink-0"
+        style={{ maxWidth: toolsExpanded ? '216px' : '0px' }}
+      >
+        <div className="flex items-center bg-[#2d3139] rounded p-0.5 gap-0.5">
+          <button title="Move"   onClick={() => { onSetActiveTool('select');  setToolsExpanded(false) }} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'select'  ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><MousePointer2 size={15} /></button>
+          <button title="Select" onClick={() => { onSetActiveTool('marquee'); setToolsExpanded(false) }} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'marquee' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><BoxSelect    size={15} /></button>
+          <button title="Brush"  onClick={() => { onSetActiveTool('brush');   setToolsExpanded(false) }} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'brush'   ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><Paintbrush   size={15} /></button>
+          <button title="Eraser" onClick={() => { onSetActiveTool('eraser');  setToolsExpanded(false) }} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'eraser'  ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><Eraser       size={15} /></button>
+          <button title="Text"   onClick={() => { onSetActiveTool('text');    setToolsExpanded(false) }} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'text'    ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><Type         size={15} /></button>
+        </div>
+      </div>
+
+      {/* Desktop: always visible */}
+      <div className="hidden sm:flex items-center bg-[#2d3139] rounded p-0.5 gap-0.5 shrink-0">
+        <button title="Move"   onClick={() => onSetActiveTool('select')}  className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'select'  ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><MousePointer2 size={15} /></button>
+        <button title="Select" onClick={() => onSetActiveTool('marquee')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'marquee' ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><BoxSelect    size={15} /></button>
+        <button title="Brush"  onClick={() => onSetActiveTool('brush')}   className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'brush'   ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><Paintbrush   size={15} /></button>
+        <button title="Eraser" onClick={() => onSetActiveTool('eraser')}  className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'eraser'  ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><Eraser       size={15} /></button>
+        <button title="Text"   onClick={() => onSetActiveTool('text')}    className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${activeTool === 'text'    ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}><Type         size={15} /></button>
       </div>
 
       {/* Brush controls — inline when draw tool is active */}

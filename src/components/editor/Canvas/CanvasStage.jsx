@@ -19,10 +19,10 @@ const checkerPatternCanvas = (() => {
   c.width = 16
   c.height = 16
   const ctx = c.getContext('2d')
-  ctx.fillStyle = '#3a3a3a'
+  ctx.fillStyle = '#363b44'
   ctx.fillRect(0, 0, 8, 8)
   ctx.fillRect(8, 8, 8, 8)
-  ctx.fillStyle = '#2a2a2a'
+  ctx.fillStyle = '#24272f'
   ctx.fillRect(8, 0, 8, 8)
   ctx.fillRect(0, 8, 8, 8)
   return c

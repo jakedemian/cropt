@@ -17,7 +17,7 @@ import { X, Check, ImagePlus, Type, Layers, Maximize, Scissors, FlipHorizontal2,
 const BG_OPTIONS = [
   { value: '#ffffff', title: 'White',       style: { background: '#fff', border: '1.5px solid rgba(255,255,255,0.2)' } },
   { value: '#000000', title: 'Black',       style: { background: '#000', border: '1.5px solid rgba(255,255,255,0.2)' } },
-  { value: 'transparent', title: 'Transparent', style: { background: 'repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%) 0 0 / 8px 8px', border: '1.5px solid rgba(255,255,255,0.2)' } },
+  { value: 'transparent', title: 'Transparent', style: { background: 'repeating-conic-gradient(#363b44 0% 25%, #24272f 0% 50%) 0 0 / 8px 8px', border: '1.5px solid rgba(255,255,255,0.2)' } },
 ]
 
 export default function BottomToolbar({

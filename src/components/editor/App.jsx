@@ -26,7 +26,7 @@ export default function App() {
     try { return localStorage.getItem('cropt_sidebar') !== 'false' } catch { return true }
   })
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    try { return parseInt(localStorage.getItem('cropt_sidebar_width')) || 224 } catch { return 224 }
+    try { return parseInt(localStorage.getItem('cropt_sidebar_width')) || 336 } catch { return 336 }
   })
   const [historyEntries, setHistoryEntries] = useState([])
 
@@ -60,8 +60,8 @@ export default function App() {
     if (w < 150) {
       setSidebarOpen(false)
       // Reset to default so next open starts at a sensible width
-      setSidebarWidth(224)
-      sidebarCurrentW.current = 224
+      setSidebarWidth(336)
+      sidebarCurrentW.current = 336
     }
     try { localStorage.setItem('cropt_sidebar_width', String(sidebarCurrentW.current)) } catch { /* ignore */ }
   }, [])

@@ -201,6 +201,10 @@ export default function CanvasStage({
   const marqFloatPosRef    = useRef(null)   // { x, y } current canvas pos of floating content
   const prevMarqueeNodeIdRef = useRef(null) // previous marqueeNodeId — used to distinguish tool-switch from node-change
   const [marqFloatDisplay, setMarqFloatDisplay] = useState(null) // { dataUrl, x, y, width, height }
+  // After a pixel move is completed the selection is "locked" — clicking inside it no longer
+  // picks up more pixels. The user must draw a new selection to pick up pixels again.
+  const [marqWasMoved, setMarqWasMoved] = useState(false)
+  const marqWasMovedRef = useRef(false)
 
   // Stamp floating content onto the source canvas and notify parent
   const stampMarqueeFloat = useCallback(() => {
@@ -294,6 +298,8 @@ export default function CanvasStage({
       marqueePhaseRef.current = 'idle'
       committedMarqueeNodeIdRef.current = null
       setCommittedMarqueeNodeId(null)
+      marqWasMovedRef.current = false
+      setMarqWasMoved(false)
     }
     // else: switching to Move tool — keep rect + committed node + phase='ready'
   }, [marqueeMode]) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs only on marqueeMode change
@@ -316,6 +322,8 @@ export default function CanvasStage({
       marqueePhaseRef.current = 'idle'
       committedMarqueeNodeIdRef.current = null
       setCommittedMarqueeNodeId(null)
+      marqWasMovedRef.current = false
+      setMarqWasMoved(false)
     }
   }, [marqueeNodeId])
 
@@ -329,6 +337,8 @@ export default function CanvasStage({
         marqueePhaseRef.current = 'idle'
         committedMarqueeNodeIdRef.current = null
         setCommittedMarqueeNodeId(null)
+        marqWasMovedRef.current = false
+        setMarqWasMoved(false)
         onMarqueeReadyRef.current(null)
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && marqueePhaseRef.current === 'ready') {
         e.preventDefault()
@@ -363,7 +373,7 @@ export default function CanvasStage({
     const phase = marqueePhaseRef.current
 
     const insideSelection =
-      phase === 'ready' && rect &&
+      phase === 'ready' && !marqWasMovedRef.current && rect &&
       pt.x >= rect.x && pt.x <= rect.x + rect.width &&
       pt.y >= rect.y && pt.y <= rect.y + rect.height
 
@@ -399,12 +409,14 @@ export default function CanvasStage({
       marqFloatPosRef.current = { x: fx, y: fy }
       setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fx, y: fy, width: fw, height: fh })
     } else {
-      // Begin drawing a new selection (stamp any existing float first)
+      // Begin drawing a new selection (stamp any existing float first, reset lock)
       stampMarqueeFloat()
       onMarqueeReadyRef.current(null)
       e.currentTarget.setPointerCapture(e.pointerId)
       marqueePhaseRef.current = 'drawing'
       marqDrawStartRef.current = pt
+      marqWasMovedRef.current = false
+      setMarqWasMoved(false)
       setMarqueeRect(null)
     }
   }, [getMarqueePoint, stageRef, stampMarqueeFloat, rasterizeImageNode])
@@ -441,6 +453,8 @@ export default function CanvasStage({
       if (!rect || rect.width < 2 || rect.height < 2) {
         setMarqueeRect(null)
         marqueePhaseRef.current = 'idle'
+        marqWasMovedRef.current = false
+        setMarqWasMoved(false)
         onMarqueeReadyRef.current(null)
       } else {
         marqueePhaseRef.current = 'ready'
@@ -451,6 +465,8 @@ export default function CanvasStage({
     } else if (phase === 'moving') {
       stampMarqueeFloat()
       marqueePhaseRef.current = 'ready'
+      marqWasMovedRef.current = true
+      setMarqWasMoved(true)
       onMarqueeReadyRef.current(marqueeRectRef.current)
     }
   }, [stampMarqueeFloat])
@@ -491,6 +507,8 @@ export default function CanvasStage({
     if (marqueePhaseRef.current !== 'moving') return
     stampMarqueeFloat()
     marqueePhaseRef.current = 'ready'
+    marqWasMovedRef.current = true
+    setMarqWasMoved(true)
     onMarqueeReadyRef.current(marqueeRectRef.current)
   }, [stampMarqueeFloat])
 
@@ -985,8 +1003,8 @@ export default function CanvasStage({
                         style={{ animation: 'marchingAnts 0.35s linear infinite' }}
                       />
                     </svg>
-                    {/* Hit area — only over selection rect, only when there's a raster canvas to move */}
-                    {hasRasterCanvas && (
+                    {/* Hit area — only when there's a canvas to move AND selection hasn't been moved yet */}
+                    {hasRasterCanvas && !marqWasMoved && (
                       <div
                         style={{
                           position: 'absolute',

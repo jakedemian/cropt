@@ -339,6 +339,26 @@ export default function CanvasStage({
     return () => window.removeEventListener('keydown', handler)
   }, [marqueeMode, isSelectToolActive, stampMarqueeFloat, handleMarqueeDeleteArea])
 
+  // Dismiss the marquee on pointer-up outside the canvas container.
+  // Tool-agnostic: fires whenever a selection exists, regardless of active tool.
+  // Listens to pointer-up (not pointer-down) so a tap+drag to pan doesn't
+  // prematurely dismiss the selection before the gesture resolves.
+  useEffect(() => {
+    const handler = (e) => {
+      if (!marqueeRectRef.current) return
+      if (!containerRef.current) return
+      if (containerRef.current.contains(e.target)) return
+      stampMarqueeFloat()
+      setMarqueeRect(null)
+      marqueePhaseRef.current = 'idle'
+      committedMarqueeNodeIdRef.current = null
+      setCommittedMarqueeNodeId(null)
+      onMarqueeReadyRef.current(null)
+    }
+    window.addEventListener('pointerup', handler)
+    return () => window.removeEventListener('pointerup', handler)
+  }, [stampMarqueeFloat])
+
   // Triggered by toolbar "Clear" button (marqueeDeleteTrigger increments)
   useEffect(() => {
     if (marqueeDeleteTrigger === 0) return

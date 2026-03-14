@@ -228,11 +228,25 @@ export default function App() {
     setTransformEnabled(false)
   }, [activeTool])
 
-  // Called by canvas node clicks and the layer-panel Move button
+  // Called by canvas node clicks and the layer-panel Move button.
+  // When id is null (e.g. stage background click) only deactivate the
+  // transformer — keep the current selected layer so there is always a
+  // targeted layer while nodes exist.
   const handleActivateTransform = useCallback((id) => {
-    selectNode(id)
+    if (id !== null) selectNode(id)
     setTransformEnabled(id !== null)
   }, [selectNode])
+
+  // Invariant: if nodes exist, one must always be selected.
+  // This acts as a safety net after deletes, session restores, canvas crops, etc.
+  // Text placement mode is exempt — it intentionally has no targeted layer while
+  // the user is choosing where to place a new text node.
+  useEffect(() => {
+    if (activeTool === 'text') return
+    if (nodes.length === 0) return
+    if (nodes.find((n) => n.id === selectedNodeId)) return
+    selectNode(nodes[nodes.length - 1].id)
+  }, [nodes, selectedNodeId, activeTool, selectNode])
 
   // ── Text mode ──────────────────────────────────────────────────────────────
   const [editingNodeId, setEditingNodeId] = useState(null)

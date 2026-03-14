@@ -8,7 +8,7 @@
 | 2 | **Image import & initial crop** — Cropping behavior immediately after importing an image feels awkward. Needs revisiting. | Open |
 | 3 | **Color picker upgrade** — The custom color picker needs a significant upgrade (better UX, swatches, recent colors, etc.). | Open |
 | 4 | **Marquee tool enhancements** — Move a marquee selection with the Move tool; delete just the selected area from the current layer; potentially more selection operations. | Done |
-| 5 | **Bottom bar layout** — Split into two regions: dimensions pinned to the right, everything else in a scrollable horizontal overflow on the left. | Open |
+| 5 | **Bottom bar layout** — Split into two regions: dimensions pinned to the right, everything else in a scrollable horizontal overflow on the left. | Done |
 
 ---
 

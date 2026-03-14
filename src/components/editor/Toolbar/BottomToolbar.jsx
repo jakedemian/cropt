@@ -216,10 +216,13 @@ export default function BottomToolbar({
   const isDrawing = activeTool === 'brush' || activeTool === 'eraser'
 
   return (
-    <footer
-      className="flex items-center gap-2 px-4 h-14 bg-[#24272f] text-white shrink-0 overflow-x-auto border-t border-white/5"
-      style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-    >
+    <footer className="flex h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
+
+      {/* Scrollable controls region */}
+      <div
+        className="flex-1 flex items-center gap-2 px-4 overflow-x-auto"
+        style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
 
       <button
         onClick={onAddImage}
@@ -621,8 +624,12 @@ export default function BottomToolbar({
         </>
       )}
 
-      {/* Canvas dimensions — always visible, pinned to the right */}
-      <span className="text-xs text-white/30 tabular-nums whitespace-nowrap shrink-0 ml-auto">{canvasSize.width}×{canvasSize.height}</span>
+      </div>{/* end scrollable controls */}
+
+      {/* Fixed dimensions — always visible regardless of scroll position */}
+      <div className="shrink-0 flex items-center px-3 border-l border-white/10">
+        <span className="text-xs text-white/30 tabular-nums whitespace-nowrap">{canvasSize.width}×{canvasSize.height}</span>
+      </div>
     </footer>
   )
 }

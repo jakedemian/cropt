@@ -8,7 +8,7 @@ export default function ImageNode({ node, draggable = true, onSelect, onChange, 
   useEffect(() => {
     const image = new window.Image()
     image.crossOrigin = 'anonymous'
-    image.onload = () => { setImg(image); onLoad?.() }
+    image.onload = () => { setImg(image); onLoad?.(image) }
     image.src = node.src
   }, [node.src]) // eslint-disable-line react-hooks/exhaustive-deps -- onLoad intentionally excluded; it's a stable callback
 

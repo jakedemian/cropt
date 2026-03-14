@@ -5,7 +5,9 @@ export default function DesktopSidebar({
   width,
   nodes,
   selectedNodeId,
+  transformEnabled,
   onSelectNode,
+  onActivateTransform,
   onToggleVisible,
   onReorder,
   onNewLayer,
@@ -23,7 +25,9 @@ export default function DesktopSidebar({
           embedded
           nodes={nodes}
           selectedNodeId={selectedNodeId}
+          transformEnabled={transformEnabled}
           onSelectNode={onSelectNode}
+          onActivateTransform={onActivateTransform}
           onToggleVisible={onToggleVisible}
           onReorder={onReorder}
           onNewLayer={onNewLayer}

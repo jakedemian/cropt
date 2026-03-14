@@ -44,6 +44,7 @@ export default function BottomToolbar({
   onSetBackground,
   onToggleLayerPanel,
   marqueeSelection,
+  onDeleteMarqueeArea,
   canvasCropMode,
   onEnterCanvasCrop,
   onConfirmCanvasCrop,
@@ -337,6 +338,17 @@ export default function BottomToolbar({
           className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
         >
           <Crop size={14} /> <span className="hidden sm:inline">Crop</span>
+        </button>
+      )}
+
+      {/* Clear area — erase pixels within marquee selection on the active raster layer */}
+      {!isDrawing && marqueeSelection && (
+        <button
+          onClick={onDeleteMarqueeArea}
+          title="Erase pixels in selected area"
+          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+        >
+          <Eraser size={14} /> <span className="hidden sm:inline">Clear</span>
         </button>
       )}
 

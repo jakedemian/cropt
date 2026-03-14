@@ -1,13 +1,15 @@
-import { Eye, EyeOff, Paintbrush } from 'lucide-react'
+import { Eye, EyeOff, Paintbrush, Move } from 'lucide-react'
 
 export default function LayerItem({
   node,
   index,
   isSelected,
+  transformEnabled,
   isDragging,
   showDropAbove,
   showDropBelow,
   onSelect,
+  onActivateTransform,
   onToggleVisible,
   onDragHandlePointerDown,
 }) {
@@ -23,6 +25,7 @@ export default function LayerItem({
         className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer select-none transition-colors ${
           isSelected ? 'bg-[rgba(15,255,149,0.15)]' : 'hover:bg-white/5'
         } ${isDragging ? 'opacity-40' : ''}`}
+        title="Target this layer"
       >
         {/* Drag handle */}
         <div
@@ -71,6 +74,19 @@ export default function LayerItem({
         <span className="flex-1 text-xs text-white truncate">
           {node.name || (node.type === 'text' ? 'Text' : `Layer ${index + 1}`)}
         </span>
+
+        {/* Transform / move button — activates transformer for this layer */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onActivateTransform() }}
+          className={`shrink-0 p-1.5 rounded transition-colors ${
+            isSelected && transformEnabled
+              ? 'text-[#0fff95] bg-[rgba(15,255,149,0.15)]'
+              : 'text-white/40 hover:text-white hover:bg-white/10'
+          }`}
+          title="Move / transform this layer"
+        >
+          <Move size={14} />
+        </button>
 
         {/* Visibility toggle */}
         <button

@@ -38,7 +38,8 @@ export default function CanvasStage({
   selectedNodeId,
   stageViewport,
   setStageViewport,
-  selectNode,
+  transformEnabled,
+  onActivateTransform,
   updateNode,
   // resize-mode props
   setCanvasSize,
@@ -67,9 +68,12 @@ export default function CanvasStage({
   // marquee-mode props
   marqueeMode,
   marqueeNodeId,
+  isSelectToolActive,
   onMarqueeStart,
   onMarqueeEnd,
   onMarqueeReady,   // (rect | null) → called whenever selection is finalized or cleared
+  onConvertToRaster, // (nodeId) → called when an image node is implicitly rasterized by a pixel op
+  marqueeDeleteTrigger,
   // canvas-crop-mode props
   canvasCropMode,
   canvasCropRect,
@@ -88,6 +92,9 @@ export default function CanvasStage({
   const [rasterCanvases, setRasterCanvases] = useState({}) // { [nodeId]: HTMLCanvasElement }
   const rasterCanvasRef    = useRef({})        // mirrors rasterCanvases for event handlers
   const rasterDataUrlCache = useRef({})        // last synced dataUrl per node
+  const imageLoadedRef     = useRef({})        // { [nodeId]: HTMLImageElement } — loaded image elements
+  const canvasSizeRef      = useRef(canvasSize)
+  useEffect(() => { canvasSizeRef.current = canvasSize }, [canvasSize])
 
   useEffect(() => {
     rasterCanvasRef.current = rasterCanvases
@@ -132,11 +139,12 @@ export default function CanvasStage({
       }
     })
 
-    // Remove stale canvases for deleted nodes
+    // Remove stale canvases and image elements for deleted nodes
     Object.keys(next).forEach((id) => {
       if (!nodes.find((n) => n.id === id)) {
         delete next[id]
         delete cache[id]
+        delete imageLoadedRef.current[id]
         changed = true
       }
     })
@@ -173,19 +181,30 @@ export default function CanvasStage({
   useEffect(() => { onMarqueeStartRef.current = onMarqueeStart }, [onMarqueeStart])
   useEffect(() => { onMarqueeEndRef.current   = onMarqueeEnd   }, [onMarqueeEnd])
 
-  const onMarqueeReadyRef  = useRef(onMarqueeReady)
-  useEffect(() => { onMarqueeReadyRef.current = onMarqueeReady }, [onMarqueeReady])
+  const onMarqueeReadyRef      = useRef(onMarqueeReady)
+  const onConvertToRasterRef   = useRef(onConvertToRaster)
+  useEffect(() => { onMarqueeReadyRef.current    = onMarqueeReady    }, [onMarqueeReady])
+  useEffect(() => { onConvertToRasterRef.current = onConvertToRaster }, [onConvertToRaster])
+
+  // Tracks which raster node the selection was drawn on — survives tool switches.
+  // State is used in render; ref is used in callbacks/effects to avoid stale closures.
+  const [committedMarqueeNodeId, setCommittedMarqueeNodeId] = useState(null)
+  const committedMarqueeNodeIdRef = useRef(null)
+  // Mirror isSelectToolActive in a ref so cleanup effects can read it synchronously
+  const isSelectToolActiveRef = useRef(isSelectToolActive)
+  useEffect(() => { isSelectToolActiveRef.current = isSelectToolActive }, [isSelectToolActive])
 
   const marqueePhaseRef    = useRef('idle') // 'idle' | 'drawing' | 'ready' | 'moving'
   const marqDrawStartRef   = useRef(null)   // { x, y } canvas point where drag began
   const marqMoveStartRef   = useRef(null)   // { pt: {x,y}, rect: {x,y,width,height} }
   const marqFloatRef       = useRef(null)   // HTMLCanvasElement — cut pixels
   const marqFloatPosRef    = useRef(null)   // { x, y } current canvas pos of floating content
+  const prevMarqueeNodeIdRef = useRef(null) // previous marqueeNodeId — used to distinguish tool-switch from node-change
   const [marqFloatDisplay, setMarqFloatDisplay] = useState(null) // { dataUrl, x, y, width, height }
 
   // Stamp floating content onto the source canvas and notify parent
   const stampMarqueeFloat = useCallback(() => {
-    const nodeId = marqueeNodeIdRef.current
+    const nodeId = marqueeNodeIdRef.current || committedMarqueeNodeIdRef.current
     const float  = marqFloatRef.current
     const pos    = marqFloatPosRef.current
     if (!float || !pos || !nodeId) return
@@ -201,38 +220,130 @@ export default function CanvasStage({
     setMarqFloatDisplay(null)
   }, [stageRef])
 
-  // Stamp + clear when marquee tool is deactivated
+  // Rasterize an image node into a full-canvas offscreen HTMLCanvas so marquee
+  // pixel ops can be applied to it. The canvas is inserted into rasterCanvases
+  // synchronously (via ref + state). App.jsx is notified via onConvertToRaster so
+  // it can replace the node's type from 'image' to 'raster'.
+  // Returns the canvas, or null if the image element isn't loaded yet.
+  const rasterizeImageNode = useCallback((nodeId) => {
+    const imgEl = imageLoadedRef.current[nodeId]
+    const node  = nodesRef.current.find((n) => n.id === nodeId)
+    if (!imgEl || !node) return null
+
+    const { width: cw, height: ch } = canvasSizeRef.current
+    const canvas = document.createElement('canvas')
+    canvas.width  = cw
+    canvas.height = ch
+
+    // Replicate Konva's image transform: translate → rotate → scale → draw with offset
+    const scaleX  = node.flipX ? -(node.scaleX ?? 1) : (node.scaleX ?? 1)
+    const scaleY  = node.scaleY ?? 1
+    const offsetX = node.flipX ? node.width : 0
+    const ctx = canvas.getContext('2d')
+    ctx.save()
+    ctx.translate(node.x ?? 0, node.y ?? 0)
+    ctx.rotate(((node.rotation ?? 0) * Math.PI) / 180)
+    ctx.scale(scaleX, scaleY)
+    ctx.drawImage(imgEl, -offsetX, 0, node.width, node.height)
+    ctx.restore()
+
+    // Sync into raster canvas tracking immediately (ref + state)
+    rasterCanvasRef.current[nodeId]    = canvas
+    rasterDataUrlCache.current[nodeId] = null // will be set after pixel op
+    setRasterCanvases((prev) => ({ ...prev, [nodeId]: canvas }))
+
+    return canvas
+  }, [])
+
+  // Clear (erase) the pixels within the marquee selection on the target raster layer.
+  // Keeps the selection active so the user can see what was deleted.
+  const handleMarqueeDeleteArea = useCallback(() => {
+    const rect   = marqueeRectRef.current
+    const nodeId = marqueeNodeIdRef.current || committedMarqueeNodeIdRef.current
+    if (!rect || !nodeId || rect.width < 1 || rect.height < 1) return
+    let canvas = rasterCanvasRef.current[nodeId]
+    if (!canvas) {
+      canvas = rasterizeImageNode(nodeId)
+      if (!canvas) return
+    }
+    const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
+    onMarqueeStartRef.current()  // push history before mutation (captures pre-rasterize state)
+    if (wasImage) onConvertToRasterRef.current?.(nodeId)
+    const fx = Math.round(rect.x),     fy = Math.round(rect.y)
+    const fw = Math.round(rect.width), fh = Math.round(rect.height)
+    canvas.getContext('2d').clearRect(fx, fy, fw, fh)
+    stageRef.current?.batchDraw()
+    const dataUrl = canvas.toDataURL('image/png')
+    rasterDataUrlCache.current[nodeId] = dataUrl
+    onMarqueeEndRef.current(nodeId, dataUrl)
+    // Discard any in-flight float; keep phase='ready' so selection stays visible
+    marqFloatRef.current    = null
+    marqFloatPosRef.current = null
+    setMarqFloatDisplay(null)
+  }, [stageRef, rasterizeImageNode])
+
+  // Stamp + clear when marquee tool is deactivated.
+  // When switching to the Move (select) tool, stamp any floating pixels but
+  // keep the selection rect so the marching ants remain visible.
   useEffect(() => {
     if (marqueeMode) return
-    stampMarqueeFloat()  // eslint-disable-line react-hooks/set-state-in-effect
-    setMarqueeRect(null)
-    marqueePhaseRef.current = 'idle'
+    stampMarqueeFloat() // eslint-disable-line react-hooks/set-state-in-effect
+    if (!isSelectToolActiveRef.current) {
+      // Switching to a non-select tool: clear selection entirely
+      setMarqueeRect(null)
+      marqueePhaseRef.current = 'idle'
+      committedMarqueeNodeIdRef.current = null
+      setCommittedMarqueeNodeId(null)
+    }
+    // else: switching to Move tool — keep rect + committed node + phase='ready'
   }, [marqueeMode]) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs only on marqueeMode change
 
-  // Clear (discard float) when the target node changes
+  // Clear selection when the raster target changes from one node to another while
+  // in marquee mode. We track the previous value to avoid false clears on tool
+  // switches where marqueeNodeId transitions to/from null:
+  //   node → null: switching tools, handled by the cleanup effect
+  //   null → node: returning to marquee, keep the preserved selection
+  //   nodeA → nodeB: genuinely different layer — clear
   useEffect(() => {
+    const prev = prevMarqueeNodeIdRef.current
+    prevMarqueeNodeIdRef.current = marqueeNodeId
+    if (!prev || !marqueeNodeId || prev === marqueeNodeId) return
     if (marqFloatRef.current || marqueeRectRef.current) {
       marqFloatRef.current    = null
       marqFloatPosRef.current = null
       setMarqFloatDisplay(null) // eslint-disable-line react-hooks/set-state-in-effect
       setMarqueeRect(null)
       marqueePhaseRef.current = 'idle'
+      committedMarqueeNodeIdRef.current = null
+      setCommittedMarqueeNodeId(null)
     }
   }, [marqueeNodeId])
 
-  // Escape to deselect while marquee tool is active
+  // Keyboard shortcuts while marquee is active (marquee tool OR move tool with selection)
   useEffect(() => {
-    if (!marqueeMode) return
+    if (!marqueeMode && !isSelectToolActive) return
     const handler = (e) => {
-      if (e.key !== 'Escape') return
-      stampMarqueeFloat()
-      setMarqueeRect(null)
-      marqueePhaseRef.current = 'idle'
-      onMarqueeReadyRef.current(null)
+      if (e.key === 'Escape') {
+        stampMarqueeFloat()
+        setMarqueeRect(null)
+        marqueePhaseRef.current = 'idle'
+        committedMarqueeNodeIdRef.current = null
+        setCommittedMarqueeNodeId(null)
+        onMarqueeReadyRef.current(null)
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && marqueePhaseRef.current === 'ready') {
+        e.preventDefault()
+        handleMarqueeDeleteArea()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [marqueeMode, stampMarqueeFloat])
+  }, [marqueeMode, isSelectToolActive, stampMarqueeFloat, handleMarqueeDeleteArea])
+
+  // Triggered by toolbar "Clear" button (marqueeDeleteTrigger increments)
+  useEffect(() => {
+    if (marqueeDeleteTrigger === 0) return
+    handleMarqueeDeleteArea()
+  }, [marqueeDeleteTrigger, handleMarqueeDeleteArea])
 
   // Convert screen → canvas coordinates (not node-relative)
   const getMarqueePoint = useCallback((e) => {
@@ -259,11 +370,16 @@ export default function CanvasStage({
     if (insideSelection) {
       // Begin moving the selected pixels
       const nodeId = marqueeNodeIdRef.current
-      const canvas = rasterCanvasRef.current[nodeId]
-      if (!canvas) return  // can't move pixels without a raster layer
+      let canvas = rasterCanvasRef.current[nodeId]
+      if (!canvas) {
+        canvas = rasterizeImageNode(nodeId)
+      }
+      if (!canvas) return  // can't move pixels without a raster layer (image not loaded)
 
       e.currentTarget.setPointerCapture(e.pointerId)
-      onMarqueeStartRef.current()  // push history before cut
+      const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
+      onMarqueeStartRef.current()  // push history before cut (captures pre-rasterize state)
+      if (wasImage) onConvertToRasterRef.current?.(nodeId)
       marqueePhaseRef.current = 'moving'
       marqMoveStartRef.current = { pt, rect }
 
@@ -291,7 +407,7 @@ export default function CanvasStage({
       marqDrawStartRef.current = pt
       setMarqueeRect(null)
     }
-  }, [getMarqueePoint, stageRef, stampMarqueeFloat])
+  }, [getMarqueePoint, stageRef, stampMarqueeFloat, rasterizeImageNode])
 
   const handleMarqueePointerMove = useCallback((e) => {
     const pt    = getMarqueePoint(e)
@@ -328,6 +444,8 @@ export default function CanvasStage({
         onMarqueeReadyRef.current(null)
       } else {
         marqueePhaseRef.current = 'ready'
+        committedMarqueeNodeIdRef.current = marqueeNodeIdRef.current
+        setCommittedMarqueeNodeId(marqueeNodeIdRef.current)
         onMarqueeReadyRef.current(rect)
       }
     } else if (phase === 'moving') {
@@ -335,6 +453,45 @@ export default function CanvasStage({
       marqueePhaseRef.current = 'ready'
       onMarqueeReadyRef.current(marqueeRectRef.current)
     }
+  }, [stampMarqueeFloat])
+
+  // In Move (select) tool mode: clicking inside the marching ants initiates pixel move
+  const handleSelectModeMarqueePointerDown = useCallback((e) => {
+    e.stopPropagation()  // prevent Konva stage from receiving this as a node deselect
+    const pt     = getMarqueePoint(e)
+    if (!pt) return
+    const rect   = marqueeRectRef.current
+    const nodeId = committedMarqueeNodeIdRef.current
+    let canvas = rasterCanvasRef.current[nodeId]
+    if (!canvas) {
+      canvas = rasterizeImageNode(nodeId)
+    }
+    if (!rect || !canvas) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
+    onMarqueeStartRef.current()
+    if (wasImage) onConvertToRasterRef.current?.(nodeId)
+    marqueePhaseRef.current  = 'moving'
+    marqMoveStartRef.current = { pt, rect }
+    const fx = Math.round(rect.x),     fy = Math.round(rect.y)
+    const fw = Math.round(rect.width), fh = Math.round(rect.height)
+    if (fw < 1 || fh < 1) return
+    const float = document.createElement('canvas')
+    float.width  = fw
+    float.height = fh
+    float.getContext('2d').drawImage(canvas, fx, fy, fw, fh, 0, 0, fw, fh)
+    canvas.getContext('2d').clearRect(fx, fy, fw, fh)
+    stageRef.current?.batchDraw()
+    marqFloatRef.current    = float
+    marqFloatPosRef.current = { x: fx, y: fy }
+    setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fx, y: fy, width: fw, height: fh })
+  }, [getMarqueePoint, stageRef, rasterizeImageNode])
+
+  const handleSelectModeMarqueePointerUp = useCallback(() => {
+    if (marqueePhaseRef.current !== 'moving') return
+    stampMarqueeFloat()
+    marqueePhaseRef.current = 'ready'
+    onMarqueeReadyRef.current(marqueeRectRef.current)
   }, [stampMarqueeFloat])
 
   const getDrawPoint = useCallback((e) => {
@@ -541,9 +698,9 @@ export default function CanvasStage({
   const handleStageClick = useCallback(
     (e) => {
       if (e.target !== stageRef.current) return
-      if (!textPlaceMode) selectNode(null)
+      if (!textPlaceMode) onActivateTransform(null)
     },
-    [selectNode, stageRef, textPlaceMode]
+    [onActivateTransform, stageRef, textPlaceMode]
   )
 
   const isInteractive = !canvasResizeMode && !cropMode && !canvasCropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode
@@ -603,11 +760,14 @@ export default function CanvasStage({
                     <ImageNode
                       key={node.id}
                       node={node}
-                      isSelected={isInteractive && selectedNodeId === node.id}
-                      draggable={isInteractive && selectedNodeId === node.id}
-                      onSelect={() => isInteractive && selectNode(node.id)}
+                      isSelected={isInteractive && selectedNodeId === node.id && transformEnabled}
+                      draggable={isInteractive && selectedNodeId === node.id && transformEnabled}
+                      onSelect={() => isInteractive && onActivateTransform(node.id)}
                       onChange={(updates) => updateNode(node.id, updates)}
-                      onLoad={() => setImageLoadCount((c) => c + 1)}
+                      onLoad={(img) => {
+                        if (img) imageLoadedRef.current[node.id] = img
+                        setImageLoadCount((c) => c + 1)
+                      }}
                     />
                   )
                 }
@@ -618,9 +778,9 @@ export default function CanvasStage({
                       key={node.id}
                       node={node}
                       isEditing={editingNodeId === node.id}
-                      isSelected={isInteractive && selectedNodeId === node.id}
-                      draggable={isInteractive && selectedNodeId === node.id}
-                      onSelect={() => isInteractive && selectNode(node.id)}
+                      isSelected={isInteractive && selectedNodeId === node.id && transformEnabled}
+                      draggable={isInteractive && selectedNodeId === node.id && transformEnabled}
+                      onSelect={() => isInteractive && onActivateTransform(node.id)}
                       onChange={(updates) => updateNode(node.id, updates)}
                       onEditRequest={() => isInteractive && onStartEditText(node.id)}
                     />
@@ -633,8 +793,8 @@ export default function CanvasStage({
                       key={node.id}
                       node={node}
                       canvasEl={rasterCanvases[node.id]}
-                      draggable={isInteractive && selectedNodeId === node.id}
-                      onSelect={() => isInteractive && selectNode(node.id)}
+                      draggable={isInteractive && selectedNodeId === node.id && transformEnabled}
+                      onSelect={() => isInteractive && onActivateTransform(node.id)}
                       onChange={(updates) => updateNode(node.id, updates)}
                     />
                   )
@@ -650,7 +810,7 @@ export default function CanvasStage({
               <TransformWrapper
                 stageRef={stageRef}
                 nodes={nodes}
-                selectedNodeId={canvasResizeMode || cropMode || canvasCropMode || editingNodeId ? null : selectedNodeId}
+                selectedNodeId={canvasResizeMode || cropMode || canvasCropMode || editingNodeId || drawMode || marqueeMode || !transformEnabled ? null : selectedNodeId}
                 onChange={(updates) => selectedNodeId && updateNode(selectedNodeId, updates)}
                 imageLoadCount={imageLoadCount}
               />
@@ -777,6 +937,70 @@ export default function CanvasStage({
                       style={{ animation: 'marchingAnts 0.35s linear infinite' }}
                     />
                   </svg>
+                )
+              })()}
+            </div>
+          )}
+
+          {/* DOM overlay: Move tool — marching ants persist + selection rect is draggable */}
+          {isSelectToolActive && marqueeRect && !canvasCropMode && (
+            <div className="absolute inset-0" style={{ pointerEvents: 'none', zIndex: 10, touchAction: 'none' }}>
+              {/* Floating pixels during in-place move */}
+              {marqFloatDisplay && (
+                <img
+                  src={marqFloatDisplay.dataUrl}
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    left:   marqFloatDisplay.x * stageViewport.scale + stageViewport.x,
+                    top:    marqFloatDisplay.y * stageViewport.scale + stageViewport.y,
+                    width:  marqFloatDisplay.width  * stageViewport.scale,
+                    height: marqFloatDisplay.height * stageViewport.scale,
+                    imageRendering: 'pixelated',
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+              {(() => {
+                const sx = marqueeRect.x      * stageViewport.scale + stageViewport.x
+                const sy = marqueeRect.y      * stageViewport.scale + stageViewport.y
+                const sw = Math.max(1, marqueeRect.width  * stageViewport.scale)
+                const sh = Math.max(1, marqueeRect.height * stageViewport.scale)
+                const committedNodeType = nodes.find((n) => n.id === committedMarqueeNodeId)?.type
+                const hasRasterCanvas = !!rasterCanvases[committedMarqueeNodeId]
+                  || committedNodeType === 'image'
+                return (
+                  <>
+                    {/* Marching ants — visual only, no pointer events */}
+                    <svg style={{ position: 'absolute', left: sx, top: sy, width: sw, height: sh, overflow: 'visible', pointerEvents: 'none' }}>
+                      <rect x={0.5} y={0.5} width={sw - 1} height={sh - 1}
+                        fill="rgba(255,255,255,0.06)"
+                        stroke="rgba(0,0,0,0.55)" strokeWidth={2}
+                        strokeDasharray="6 4"
+                      />
+                      <rect x={0.5} y={0.5} width={sw - 1} height={sh - 1}
+                        fill="none"
+                        stroke="white" strokeWidth={1.5}
+                        strokeDasharray="6 4"
+                        style={{ animation: 'marchingAnts 0.35s linear infinite' }}
+                      />
+                    </svg>
+                    {/* Hit area — only over selection rect, only when there's a raster canvas to move */}
+                    {hasRasterCanvas && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: sx, top: sy, width: sw, height: sh,
+                          cursor: 'move',
+                          pointerEvents: 'auto',
+                        }}
+                        onPointerDown={handleSelectModeMarqueePointerDown}
+                        onPointerMove={handleMarqueePointerMove}
+                        onPointerUp={handleSelectModeMarqueePointerUp}
+                        onPointerCancel={handleSelectModeMarqueePointerUp}
+                      />
+                    )}
+                  </>
                 )
               })()}
             </div>

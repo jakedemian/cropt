@@ -217,6 +217,23 @@ export default function App() {
   const drawTool = activeTool === 'eraser' ? 'eraser' : 'brush'
   const textPlaceMode = activeTool === 'text'
 
+  // ── Transform activation ────────────────────────────────────────────────────
+  // Clicking a layer in the panel just "targets" it for pixel ops.
+  // The transformer only appears when the user explicitly activates it via
+  // the Move button in the layer panel or by clicking a node on the canvas.
+  const [transformEnabled, setTransformEnabled] = useState(false)
+
+  // Deactivate transformer when switching tools
+  useEffect(() => {
+    setTransformEnabled(false)
+  }, [activeTool])
+
+  // Called by canvas node clicks and the layer-panel Move button
+  const handleActivateTransform = useCallback((id) => {
+    selectNode(id)
+    setTransformEnabled(id !== null)
+  }, [selectNode])
+
   // ── Text mode ──────────────────────────────────────────────────────────────
   const [editingNodeId, setEditingNodeId] = useState(null)
   // Snapshot of state (nodes, canvasSize, canvasBackground) taken before editing
@@ -225,10 +242,13 @@ export default function App() {
 
   // ── Marquee selection (canvas-level crop target) ───────────────────────────
   const [marqueeSelection, setMarqueeSelection] = useState(null) // { x, y, width, height } | null
+  const [marqueeDeleteTrigger, setMarqueeDeleteTrigger] = useState(0)
 
-  // Clear when switching away from the marquee tool
+  // Clear when switching away from the marquee tool.
+  // Keep the selection when switching to Move (select) tool so marching ants
+  // remain visible and the user can still move / delete the selected area.
   useEffect(() => {
-    if (activeTool !== 'marquee') setMarqueeSelection(null)
+    if (activeTool !== 'marquee' && activeTool !== 'select') setMarqueeSelection(null)
   }, [activeTool])
 
   // ── Canvas crop mode ────────────────────────────────────────────────────────
@@ -645,6 +665,8 @@ export default function App() {
             stageViewport={stageViewport}
             setStageViewport={setStageViewport}
             selectNode={selectNode}
+            transformEnabled={transformEnabled}
+            onActivateTransform={handleActivateTransform}
             updateNode={updateNodeWithHistory}
             setCanvasSize={setCanvasSize}
             replaceNodes={replaceNodes}
@@ -667,10 +689,27 @@ export default function App() {
             onDrawStart={pushHistory}
             onDrawEnd={(id, dataUrl) => updateNode(id, { dataUrl })}
             marqueeMode={activeTool === 'marquee'}
-            marqueeNodeId={activeTool === 'marquee' && selectedNode?.type === 'raster' ? selectedNodeId : null}
+            marqueeNodeId={activeTool === 'marquee' && (selectedNode?.type === 'raster' || selectedNode?.type === 'image') ? selectedNodeId : null}
+            onConvertToRaster={(id) => {
+              const node = nodes.find((n) => n.id === id)
+              if (!node || node.type !== 'image') return
+              // History was already pushed by onMarqueeStart — use raw updateNode
+              updateNode(id, {
+                type: 'raster',
+                x: 0,
+                y: 0,
+                width: canvasSize.width,
+                height: canvasSize.height,
+                dataUrl: null,
+                src: undefined,
+                flipX: undefined,
+              })
+            }}
+            isSelectToolActive={activeTool === 'select'}
             onMarqueeStart={pushHistory}
             onMarqueeEnd={(id, dataUrl) => updateNode(id, { dataUrl })}
             onMarqueeReady={setMarqueeSelection}
+            marqueeDeleteTrigger={marqueeDeleteTrigger}
             canvasCropMode={canvasCropMode}
             canvasCropRect={canvasCropRect}
             canvasCropBounds={canvasCropBounds}
@@ -683,7 +722,9 @@ export default function App() {
               <LayerPanel
                 nodes={nodes}
                 selectedNodeId={selectedNodeId}
+                transformEnabled={transformEnabled}
                 onSelectNode={selectNode}
+                onActivateTransform={handleActivateTransform}
                 onToggleVisible={(id) => {
                   const node = nodes.find((n) => n.id === id)
                   if (node) { pushHistory(); updateNode(id, { visible: !node.visible }) }
@@ -732,7 +773,9 @@ export default function App() {
             width={sidebarWidth}
             nodes={nodes}
             selectedNodeId={selectedNodeId}
+            transformEnabled={transformEnabled}
             onSelectNode={selectNode}
+            onActivateTransform={handleActivateTransform}
             onToggleVisible={(id) => {
               const node = nodes.find((n) => n.id === id)
               if (node) { pushHistory(); updateNode(id, { visible: !node.visible }) }
@@ -762,6 +805,7 @@ export default function App() {
         onSetBackground={(bg) => { pushHistory(); setCanvasBackground(bg) }}
         onToggleLayerPanel={() => setShowLayerPanel((p) => !p)}
         marqueeSelection={marqueeSelection}
+        onDeleteMarqueeArea={() => setMarqueeDeleteTrigger((t) => t + 1)}
         canvasCropMode={canvasCropMode}
         onEnterCanvasCrop={handleEnterCanvasCrop}
         onConfirmCanvasCrop={handleConfirmCanvasCrop}

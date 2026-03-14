@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { X, Clock } from 'lucide-react'
+import { X, Clock, Check } from 'lucide-react'
 import { version } from '../../../package.json'
 import { useCanvasState } from './hooks/useCanvasState'
 import { useImageImport } from './hooks/useImageImport'
@@ -153,6 +153,9 @@ export default function App() {
   const [pixelRatio, setPixelRatio] = useState(1)
   const { exportCanvas, copyCanvas, captureBlob } = useExport({ stageRef, canvasBackground, canvasSize, pixelRatio })
   const { status: uploadStatus, shareUrl, error: uploadError, upload, reset: resetUpload } = useUpload({ captureBlob })
+  const [linkCopied, setLinkCopied] = useState(false)
+  const linkCopyTimer = useRef(null)
+  useEffect(() => { if (uploadStatus !== 'success') setLinkCopied(false) }, [uploadStatus])
 
   // Generate a small thumbnail data URL from the current canvas state.
   const generateThumbnail = useCallback(async () => {
@@ -907,10 +910,17 @@ export default function App() {
                     onFocus={(e) => e.target.select()}
                   />
                   <button
-                    onClick={() => navigator.clipboard?.writeText(shareUrl)}
-                    className="px-3 py-2 rounded-lg text-xs font-medium bg-[#5865f2] text-white hover:bg-[#4752c4] transition-colors"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(shareUrl)
+                      setLinkCopied(true)
+                      clearTimeout(linkCopyTimer.current)
+                      linkCopyTimer.current = setTimeout(() => setLinkCopied(false), 2000)
+                    }}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                      linkCopied ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#5865f2] text-white hover:bg-[#4752c4]'
+                    }`}
                   >
-                    Copy
+                    {linkCopied ? <><Check size={12} /> Copied!</> : 'Copy'}
                   </button>
                 </div>
                 <div className="flex gap-3 justify-end">

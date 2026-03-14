@@ -311,7 +311,7 @@ export default function BottomToolbar({
           onClick={onToggleLayerPanel}
           className={`sm:hidden flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
             showLayerPanel
-              ? 'bg-[#424850] text-white'
+              ? 'bg-white text-[#24272f]'
               : 'bg-[#363b44] text-white hover:bg-[#424850]'
           }`}
         >
@@ -388,7 +388,7 @@ export default function BottomToolbar({
                 setBgOpen((o) => !o)
               }}
               className={`flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap ${
-                bgOpen ? 'bg-[#424850] text-white' : 'bg-[#363b44] text-white hover:bg-[#424850]'
+                bgOpen ? 'bg-white text-[#24272f]' : 'bg-[#363b44] text-white hover:bg-[#424850]'
               }`}
               title="Background color"
             >

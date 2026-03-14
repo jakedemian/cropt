@@ -20,7 +20,7 @@ import HistoryPanel from './Sidebar/HistoryPanel'
 
 export default function App() {
   const stageRef = useRef(null)
-  const [showLayerPanel, setShowLayerPanel] = useState(false)
+  const [showLayerPanel, setShowLayerPanel] = useState(() => window.innerWidth < 640)
   const [showMobileHistory, setShowMobileHistory] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try { return localStorage.getItem('cropt_sidebar') !== 'false' } catch { return true }

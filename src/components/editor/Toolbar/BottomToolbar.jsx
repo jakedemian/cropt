@@ -11,7 +11,7 @@ const FONTS = [
   { label: 'Permanent Marker', value: 'Permanent Marker' },
 ]
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, ChevronRight, ChevronDown } from 'lucide-react'
 
 const TOOLS = [
@@ -77,6 +77,20 @@ export default function BottomToolbar({
   // ── Hooks must be declared before any early returns (Rules of Hooks) ───────
   const [toolsExpanded, setToolsExpanded] = useState(false)
   const [bgOpen, setBgOpen] = useState(false)
+  const [showLeftFade,  setShowLeftFade]  = useState(false)
+  const [showRightFade, setShowRightFade] = useState(false)
+  const scrollRef = useRef(null)
+
+  const updateFades = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setShowLeftFade(el.scrollLeft > 0)
+    setShowRightFade(Math.ceil(el.scrollLeft) < el.scrollWidth - el.clientWidth)
+  }, [])
+
+  // Re-check after every render — content changes (different controls shown)
+  // affect scrollWidth and need a fresh fade calculation.
+  useEffect(updateFades)
   const bgBtnRef = useRef(null)
   const bgMenuRef = useRef(null)
   const [bgPos, setBgPos] = useState({ left: 0, bottom: 0 })
@@ -218,10 +232,21 @@ export default function BottomToolbar({
   return (
     <footer className="flex h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
 
-      {/* Scrollable controls region */}
+      {/* Scrollable controls region + fade hints */}
+      <div className="flex-1 relative min-w-0">
+        {showLeftFade && (
+          <div className="absolute left-0 top-0 bottom-0 w-8 pointer-events-none z-10"
+            style={{ background: 'linear-gradient(to right, #24272f, transparent)' }} />
+        )}
+        {showRightFade && (
+          <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none z-10"
+            style={{ background: 'linear-gradient(to left, #24272f, transparent)' }} />
+        )}
       <div
-        className="flex-1 flex items-center gap-2 px-4 overflow-x-auto"
+        ref={scrollRef}
+        className="flex items-center gap-2 px-4 h-14 overflow-x-auto"
         style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        onScroll={updateFades}
       >
 
       <button
@@ -624,7 +649,8 @@ export default function BottomToolbar({
         </>
       )}
 
-      </div>{/* end scrollable controls */}
+      </div>{/* end scroll div */}
+      </div>{/* end scrollable controls + fades */}
 
       {/* Fixed dimensions — always visible regardless of scroll position */}
       <div className="shrink-0 flex items-center px-3 border-l border-white/10">

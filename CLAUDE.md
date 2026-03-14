@@ -29,29 +29,36 @@ Cropt is a **mobile-first Progressive Web App (PWA)** for creating and sharing m
 
 | Route | Description |
 |-------|-------------|
-| `/` | Feed — SSR chronological grid of hosted memes |
+| `/` | Feed — SSR chronological grid of hosted memes with infinite scroll |
 | `/create` | Editor — client-only, dynamic import with `ssr: false` |
 | `/m/[id]` | Viewer — SSR, OG tags, copy link, report |
 | `/dmca` | DMCA policy + takedown form |
-| `/api/upload` | POST — receive image, moderate, store, return URL |
+| `/api/upload` | POST — receive image, moderate, store, return share URL |
 | `/api/report` | POST — flag an image for review |
+| `/api/feed` | GET — paginated feed via cursor (used by infinite scroll) |
 
 ---
 
 ## Key Features
 
-- **Image import** — Paste from clipboard, drag-and-drop, or file picker
-- **Text nodes** — Place text anywhere, style with bold/italic, color, outline, font size
+- **Image import** — Paste from clipboard, drag-and-drop, or file picker; auto-downscales to 2000px max dimension
+- **Text nodes** — Place text anywhere, style with bold/italic, color, outline, font size, font family
 - **Transform controls** — Drag, resize, rotate any node via Konva Transformer
-- **Crop tool** — Crop images to a rectangular region (rotation must be 0)
-- **Canvas resize** — Drag edge/corner handles to resize the canvas bounds
-- **Layer panel** — Reorder nodes via drag-and-drop; select/delete from panel
-- **Undo/Redo** — Up to 50 steps of history
-- **Export** — Save as PNG or copy to clipboard
+- **Raster/paint layers** — Named paint layers; draw on them with brush or eraser tool
+- **Tool system** — Unified `activeTool` state: Move, Marquee (select), Brush, Eraser, Text
+- **Marquee selection** — Draw a rectangular selection; move selected pixels on raster layers; marching-ants animation
+- **Trim** — Crop an image node to a rectangular sub-region (rotation must be 0); does not affect canvas size
+- **Canvas crop** — Interactively set new canvas bounds (bounded by current selection or selected node); shrinks canvas and clips all nodes on confirm
+- **Canvas resize** — Drag edge/corner handles to expand or shrink the canvas bounds
+- **Layer panel** — Reorder nodes via drag-and-drop; toggle visibility; select/delete; add new raster layers
+- **Desktop sidebar** — Persistent panel (resizable) showing layers + document history on desktop
+- **Undo/Redo** — Up to 50 in-session snapshots (Cmd/Ctrl+Z / Shift+Z)
+- **Document history** — Auto-saves up to 5 documents to IndexedDB; restore previous work across sessions
+- **Export** — Save as PNG (1× or 2×) or copy to clipboard; native share sheet on mobile
 - **Upload & Share** — Upload finished meme to Cropt, get a shareable link
-- **Session persistence** — Auto-saves to localStorage; restores on reload
-- **Leave warning** — Prompts before losing unsaved work (back button, browser close)
-- **PWA** — Installable, standalone display, portrait orientation
+- **Session persistence** — Auto-saves current canvas to localStorage (1500ms debounce); restores on reload
+- **Leave warning** — Custom dialog on back-button press (Android PWA + browsers); `beforeunload` on desktop
+- **PWA** — Installable, standalone display, portrait orientation, install prompt
 
 ---
 
@@ -59,15 +66,28 @@ Cropt is a **mobile-first Progressive Web App (PWA)** for creating and sharing m
 
 | Term | Meaning |
 |------|---------|
-| **Node** | A canvas element — either `image` or `text` type |
+| **Node** | A canvas element — `image`, `text`, or `raster` type |
+| **Image node** | A placed photo/image; supports scale, flip, rotate, trim |
+| **Text node** | A placed text label; supports bold/italic, color, outline, font, size |
+| **Raster node** | A paint layer backed by an offscreen HTMLCanvas; supports brush/eraser drawing |
 | **Stage** | The Konva Stage; the zoomable/pannable viewport |
-| **Canvas** | The logical document bounds (white/black/transparent background) |
-| **Transformer** | Konva's resize/rotate handles shown on selected node |
-| **Crop mode** | UI state where user drags a rectangle to crop an image |
-| **Resize mode** | UI state where canvas edge handles are shown |
-| **Text place mode** | UI state where next tap places a new text node |
-| **Text edit mode** | Inline editing a text node via HTML textarea overlay |
+| **Canvas** | The logical document bounds (the white/black/transparent rectangle nodes live on) |
+| **Transformer** | Konva's resize/rotate handles shown on the selected node |
+| **activeTool** | The currently active editor tool: `'select'` \| `'marquee'` \| `'brush'` \| `'eraser'` \| `'text'` |
+| **Move tool** (`select`) | Default tool; allows selecting, dragging, and transforming nodes |
+| **Marquee tool** | Draw a rectangular selection on the canvas; can move selected pixels on raster layers |
+| **Trim** | Per-image-node crop: crops an image node to a sub-region without changing canvas size (uses `CropOverlay`) |
+| **Canvas crop** | Canvas-level crop: interactively shrinks the canvas bounds to a chosen area, clipping all nodes (uses `CanvasCropHandles`) |
+| **Crop mode** | Internal state name for Trim mode (`cropMode` / `setCropMode`) |
+| **Canvas crop mode** | Internal state name for canvas crop (`canvasCropMode`) |
+| **Resize mode** | UI state where canvas edge/corner handles are shown for resizing the canvas |
+| **Text place mode** | UI state (`activeTool === 'text'`) where the next canvas tap places a new text node |
+| **Text edit mode** | Inline editing a text node via an HTML textarea overlay (`editingNodeId`) |
+| **Marquee selection** | The finalized rect from the marquee tool (`marqueeSelection` state in App.jsx); used to bound the canvas crop |
+| **Canvas crop bounds** | The maximum allowed area for the canvas crop handles — set from the marquee selection or selected node bounds at entry; handles cannot expand beyond this |
 | **Upload** | A hosted meme — row in `uploads` table + file in R2 |
+| **Document history** | Up to 5 full canvas states stored in IndexedDB; distinct from undo/redo |
+| **Session** | The current canvas state auto-saved to localStorage; restored on next visit |
 
 ---
 
@@ -76,51 +96,24 @@ Cropt is a **mobile-first Progressive Web App (PWA)** for creating and sharing m
 ```
 src/
 ├── app/
-│   ├── globals.css              # Tailwind imports + global styles
-│   ├── layout.tsx               # Root layout — fonts, PWA meta, head tags
-│   ├── page.tsx                 # Redirects / → /create (until feed is built)
 │   ├── create/
-│   │   └── page.tsx             # Editor shell — dynamic import ssr:false
 │   ├── m/[id]/
-│   │   └── page.tsx             # Viewer — SSR + OG tags
 │   ├── dmca/
-│   │   └── page.tsx             # DMCA policy
 │   └── api/
-│       ├── upload/route.ts      # POST /api/upload
-│       └── report/route.ts      # POST /api/report
+│       ├── upload/
+│       ├── report/
+│       └── feed/
 ├── components/
-│   ├── editor/                  # All editor code (client-only)
-│   │   ├── App.jsx              # Main editor component
+│   ├── editor/
 │   │   ├── Canvas/
-│   │   │   ├── CanvasStage.jsx
-│   │   │   ├── ImageNode.jsx
-│   │   │   ├── TextNode.jsx
-│   │   │   ├── TransformWrapper.jsx
-│   │   │   ├── CropOverlay.jsx
-│   │   │   ├── CanvasResizeHandles.jsx
-│   │   │   └── TextEditOverlay.jsx
 │   │   ├── Toolbar/
-│   │   │   ├── TopBar.jsx
-│   │   │   └── BottomToolbar.jsx
 │   │   ├── LayerPanel/
-│   │   │   ├── LayerPanel.jsx
-│   │   │   └── LayerItem.jsx
+│   │   ├── Sidebar/
 │   │   ├── hooks/
-│   │   │   ├── useCanvasState.js
-│   │   │   ├── useImageImport.js
-│   │   │   ├── useExport.js
-│   │   │   ├── useInstallPrompt.js
-│   │   │   ├── useSessionPersistence.js
-│   │   │   └── useBackGuard.js
 │   │   └── utils/
-│   │       └── canvasUtils.js
-│   ├── feed/                    # Feed components (Phase 6)
-│   └── viewer/                  # Viewer components (Phase 5)
+│   ├── feed/
+│   └── shared/
 └── lib/
-    ├── schema.ts                # Drizzle schema — uploads table
-    ├── db.ts                    # Neon + Drizzle client
-    ├── r2.ts                    # Cloudflare R2 S3 client
-    └── rekognition.ts           # AWS Rekognition moderation client
 ```
 
 ---
@@ -161,7 +154,7 @@ See `.env.local.example` for all required variables. Never commit `.env.local`.
 
 ## Deployment
 
-**Automatic:** Merging a PR to `main` triggers a production deployment via Vercel's GitHub integration.
+**Automatic:** Pushing to `main` triggers a production deployment via Vercel's GitHub integration.
 
 **Manual:**
 ```bash
@@ -183,12 +176,24 @@ Current version is in `package.json` and displayed in the app's overflow menu (`
 
 ---
 
+## Bug & Feature Tracking Process
+
+Bugs and improvements/features are logged in the relevant area file (`EDITOR.md`, `FEED.md`, `SOCIAL.md`) under `Known Bugs` or `Improvements & Features` respectively.
+
+**Rules (apply equally to bugs and features):**
+- When a bug or enhancement is mentioned in any way, **first check if it's already logged**. If not, **logging it is the very first action** before any investigation or implementation.
+- When resolved or shipped, mark it as **Fixed** / **Done** in the appropriate file.
+- **Never delete entries.** The user will manually request cleanups.
+
+---
+
 ## Known Limitations
 
 1. **Export canvas blink** — Brief flash when exporting due to transform reset; proper fix requires offscreen canvas rendering.
 2. **Desktop PWA Cmd+Q** — macOS force-quit bypasses `beforeunload`. OS-level limitation.
 3. **iOS PWA swipe-close** — Cannot intercept swipe-to-close gesture. OS-level limitation.
-4. **Crop requires rotation=0** — Cropping a rotated image is disabled; user must flatten rotation first.
+4. **Trim requires rotation=0** — Trimming a rotated image is disabled; user must flatten rotation first.
+5. **Raster node position** — Raster nodes default to canvas origin (0,0) and full canvas size; they are not freely repositionable like image nodes.
 
 ---
 
@@ -198,32 +203,50 @@ Current version is in `package.json` and displayed in the app's overflow menu (`
 All editor code lives in `src/components/editor/` and is loaded via `dynamic(..., { ssr: false })` at `/create`. Konva never runs on the server.
 
 ### State Management
-All canvas state lives in `useCanvasState` hook — nodes array, canvas size, background, selection, history stacks. No external state library.
+All canvas state lives in `useCanvasState` — nodes array, canvas size, background, selection, undo/redo stacks. No external state library. `App.jsx` owns all other editor state (active tool, crop mode, text edit mode, etc.) and passes everything down via props.
 
-### History
-Undo/redo uses snapshot-based history stored in refs. `pushHistory()` captures state before mutations; `pushSnapshot()` accepts explicit snapshots.
+### Tool System
+A single `activeTool` string (`'select' | 'marquee' | 'brush' | 'eraser' | 'text'`) replaces what would otherwise be several overlapping boolean mode flags. `CanvasStage` still receives derived props (`drawMode`, `drawTool`, `textPlaceMode`) so it doesn't need to know about `activeTool` directly.
+
+### Two Distinct History Systems
+| System | Scope | Storage | Limit | Hook |
+|--------|-------|---------|-------|------|
+| Undo/Redo | In-session snapshots of nodes + canvas size + background | In-memory refs | 50 steps | `useCanvasState` |
+| Document History | Full canvas states saved across sessions | IndexedDB (gzip-compressed) | 5 documents | `useDocumentHistory` |
+
+`pushHistory()` captures state **before** a mutation. `pushSnapshot()` accepts an explicit snapshot — used when the caller already has the pre-mutation state (e.g. resize confirm needs the original canvas size, not the one already changed by dragging handles).
+
+### Raster Layer System
+Raster nodes are paint layers backed by offscreen `HTMLCanvasElement`s managed directly in `CanvasStage`, not by Konva. This is necessary because Konva's image update cycle isn't fast enough for real-time brush drawing.
+
+- `rasterCanvases` (React state) — `{ [nodeId]: HTMLCanvasElement }` — used during render so RasterNode receives the correct canvas element
+- `rasterCanvasRef` — mirrors `rasterCanvases` synchronously for use inside pointer event handlers (avoids stale closure issues)
+- `rasterDataUrlCache` — tracks the last synced `dataUrl` per node; when a node's `dataUrl` changes externally (undo/redo), the cache miss triggers a pixel reload from the data URL
+- On draw end, the canvas is serialized to a data URL and stored on the node via `updateNode` — this is what gets saved to localStorage/IndexedDB
+
+### Trim vs Canvas Crop
+These are two distinct operations that are easy to confuse:
+
+- **Trim** (`cropMode`) — operates on a single selected **image node**. Crops the image's pixels to a sub-rectangle without touching the canvas size. The `CropOverlay` component bounds the handles to the node's rendered area.
+- **Canvas Crop** (`canvasCropMode`) — operates on the **entire canvas**. Shrinks the canvas bounds to a chosen rectangle, shifting all nodes and clipping image/raster content. The `CanvasCropHandles` component bounds the handles to the initial selection (marquee or selected node bounding box); handles can only shrink, never expand beyond that initial bound.
 
 ### Coordinate System
-- **Stage coordinates** — Pan/zoom transformed; what the user sees
-- **Canvas coordinates** — Logical 1:1 coordinates; where nodes actually live
-- Conversion: `stageToCanvas(point, stageViewport)`
+- **Screen coordinates** — raw `clientX/clientY` from pointer events
+- **Stage coordinates** — screen coords minus the stage container's `getBoundingClientRect()` offset
+- **Canvas coordinates** — stage coords transformed by `stageViewport`: `canvasX = (stageX - vp.x) / vp.scale`
+- **Node-local coordinates** — canvas coords relative to a node's origin and scale (used for brush drawing)
+
+### Image Import
+Images are imported as object URLs, immediately downscaled to 2000px max dimension if needed, and added as `image` nodes. Object URLs are converted to data URLs before being saved to localStorage (object URLs don't survive page reload).
 
 ### Upload Flow
-`POST /api/upload` → validate → Rekognition moderation → nanoid → R2 upload → DB insert → return share URL.
+`POST /api/upload` → validate size/type → Rekognition content moderation → nanoid ID → R2 upload → Postgres insert → return `/m/{id}` share URL.
+
+### Feed
+The feed (`/`) is SSR with the first 20 items. Infinite scroll is handled client-side by `FeedGrid`, which fetches `/api/feed?cursor=...` (timestamp-based cursor) as the user approaches the bottom.
 
 ### Session Persistence
-`useSessionPersistence` debounces saves (1500ms) to localStorage. Blob URLs are converted to data URLs before storage.
-
----
-
-## Bug & Feature Tracking Process
-
-Bugs and improvements/features are logged in the relevant area file (`EDITOR.md`, `FEED.md`, `SOCIAL.md`) under `Known Bugs` or `Improvements & Features` respectively.
-
-**Rules (apply equally to bugs and features):**
-- When a bug or enhancement is mentioned in any way, **first check if it's already logged**. If not, **logging it is the very first action** before any investigation or implementation.
-- When resolved or shipped, mark it as **Fixed** / **Done** in the appropriate file.
-- **Never delete entries.** The user will manually request cleanups.
+`useSessionPersistence` debounces saves to localStorage (1500ms). Auto-save is skipped during canvas resize mode (size is mid-drag and not a committed value). Blob/object URLs in node `src` fields are converted to data URLs before saving.
 
 ---
 

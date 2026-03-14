@@ -653,7 +653,7 @@ export default function BottomToolbar({
       </div>{/* end scrollable controls + fades */}
 
       {/* Fixed dimensions — always visible regardless of scroll position */}
-      <div className="shrink-0 flex items-center px-3 border-l border-white/10">
+      <div className="shrink-0 flex items-center px-3 border-l border-black/30">
         <span className="text-xs text-white/30 tabular-nums whitespace-nowrap">{canvasSize.width}×{canvasSize.height}</span>
       </div>
     </footer>

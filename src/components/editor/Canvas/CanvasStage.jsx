@@ -201,10 +201,6 @@ export default function CanvasStage({
   const marqFloatPosRef    = useRef(null)   // { x, y } current canvas pos of floating content
   const prevMarqueeNodeIdRef = useRef(null) // previous marqueeNodeId — used to distinguish tool-switch from node-change
   const [marqFloatDisplay, setMarqFloatDisplay] = useState(null) // { dataUrl, x, y, width, height }
-  // After a pixel move is completed the selection is "locked" — clicking inside it no longer
-  // picks up more pixels. The user must draw a new selection to pick up pixels again.
-  const [marqWasMoved, setMarqWasMoved] = useState(false)
-  const marqWasMovedRef = useRef(false)
 
   // Stamp floating content onto the source canvas and notify parent
   const stampMarqueeFloat = useCallback(() => {
@@ -298,8 +294,6 @@ export default function CanvasStage({
       marqueePhaseRef.current = 'idle'
       committedMarqueeNodeIdRef.current = null
       setCommittedMarqueeNodeId(null)
-      marqWasMovedRef.current = false
-      setMarqWasMoved(false)
     }
     // else: switching to Move tool — keep rect + committed node + phase='ready'
   }, [marqueeMode]) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs only on marqueeMode change
@@ -322,8 +316,6 @@ export default function CanvasStage({
       marqueePhaseRef.current = 'idle'
       committedMarqueeNodeIdRef.current = null
       setCommittedMarqueeNodeId(null)
-      marqWasMovedRef.current = false
-      setMarqWasMoved(false)
     }
   }, [marqueeNodeId])
 
@@ -337,8 +329,6 @@ export default function CanvasStage({
         marqueePhaseRef.current = 'idle'
         committedMarqueeNodeIdRef.current = null
         setCommittedMarqueeNodeId(null)
-        marqWasMovedRef.current = false
-        setMarqWasMoved(false)
         onMarqueeReadyRef.current(null)
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && marqueePhaseRef.current === 'ready') {
         e.preventDefault()
@@ -373,50 +363,54 @@ export default function CanvasStage({
     const phase = marqueePhaseRef.current
 
     const insideSelection =
-      phase === 'ready' && !marqWasMovedRef.current && rect &&
+      phase === 'ready' && rect &&
       pt.x >= rect.x && pt.x <= rect.x + rect.width &&
       pt.y >= rect.y && pt.y <= rect.y + rect.height
 
     if (insideSelection) {
-      // Begin moving the selected pixels
-      const nodeId = marqueeNodeIdRef.current
-      let canvas = rasterCanvasRef.current[nodeId]
-      if (!canvas) {
-        canvas = rasterizeImageNode(nodeId)
+      if (marqFloatRef.current) {
+        // Float already established — just resume moving it, no new cut
+        e.currentTarget.setPointerCapture(e.pointerId)
+        marqueePhaseRef.current  = 'moving'
+        marqMoveStartRef.current = { pt, rect }
+      } else {
+        // First pick — cut pixels from canvas to create the float
+        const nodeId = marqueeNodeIdRef.current
+        let canvas = rasterCanvasRef.current[nodeId]
+        if (!canvas) {
+          canvas = rasterizeImageNode(nodeId)
+        }
+        if (!canvas) return  // image not loaded yet
+
+        e.currentTarget.setPointerCapture(e.pointerId)
+        const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
+        onMarqueeStartRef.current()  // push history before cut
+        if (wasImage) onConvertToRasterRef.current?.(nodeId)
+        marqueePhaseRef.current  = 'moving'
+        marqMoveStartRef.current = { pt, rect }
+
+        const fx = Math.round(rect.x), fy = Math.round(rect.y)
+        const fw = Math.round(rect.width), fh = Math.round(rect.height)
+        if (fw < 1 || fh < 1) return
+
+        const float = document.createElement('canvas')
+        float.width  = fw
+        float.height = fh
+        float.getContext('2d').drawImage(canvas, fx, fy, fw, fh, 0, 0, fw, fh)
+        canvas.getContext('2d').clearRect(fx, fy, fw, fh)
+        stageRef.current?.batchDraw()
+
+        marqFloatRef.current    = float
+        marqFloatPosRef.current = { x: fx, y: fy }
+        setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fx, y: fy, width: fw, height: fh })
       }
-      if (!canvas) return  // can't move pixels without a raster layer (image not loaded)
-
-      e.currentTarget.setPointerCapture(e.pointerId)
-      const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
-      onMarqueeStartRef.current()  // push history before cut (captures pre-rasterize state)
-      if (wasImage) onConvertToRasterRef.current?.(nodeId)
-      marqueePhaseRef.current = 'moving'
-      marqMoveStartRef.current = { pt, rect }
-
-      const fx = Math.round(rect.x), fy = Math.round(rect.y)
-      const fw = Math.round(rect.width), fh = Math.round(rect.height)
-      if (fw < 1 || fh < 1) return
-
-      // Cut pixels from source canvas
-      const float = document.createElement('canvas')
-      float.width  = fw
-      float.height = fh
-      float.getContext('2d').drawImage(canvas, fx, fy, fw, fh, 0, 0, fw, fh)
-      canvas.getContext('2d').clearRect(fx, fy, fw, fh)
-      stageRef.current?.batchDraw()
-
-      marqFloatRef.current    = float
-      marqFloatPosRef.current = { x: fx, y: fy }
-      setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fx, y: fy, width: fw, height: fh })
     } else {
-      // Begin drawing a new selection (stamp any existing float first, reset lock)
+      // Begin drawing a new selection — stamp any existing float first
       stampMarqueeFloat()
       onMarqueeReadyRef.current(null)
       e.currentTarget.setPointerCapture(e.pointerId)
-      marqueePhaseRef.current = 'drawing'
+      marqueePhaseRef.current  = 'drawing'
       marqDrawStartRef.current = pt
-      marqWasMovedRef.current = false
-      setMarqWasMoved(false)
       setMarqueeRect(null)
     }
   }, [getMarqueePoint, stageRef, stampMarqueeFloat, rasterizeImageNode])
@@ -453,8 +447,6 @@ export default function CanvasStage({
       if (!rect || rect.width < 2 || rect.height < 2) {
         setMarqueeRect(null)
         marqueePhaseRef.current = 'idle'
-        marqWasMovedRef.current = false
-        setMarqWasMoved(false)
         onMarqueeReadyRef.current(null)
       } else {
         marqueePhaseRef.current = 'ready'
@@ -463,54 +455,61 @@ export default function CanvasStage({
         onMarqueeReadyRef.current(rect)
       }
     } else if (phase === 'moving') {
-      stampMarqueeFloat()
+      // Park the float at its current position — don't stamp yet.
+      // The user can drag again to reposition the same pixels.
       marqueePhaseRef.current = 'ready'
-      marqWasMovedRef.current = true
-      setMarqWasMoved(true)
       onMarqueeReadyRef.current(marqueeRectRef.current)
     }
-  }, [stampMarqueeFloat])
+  }, [])
 
   // In Move (select) tool mode: clicking inside the marching ants initiates pixel move
   const handleSelectModeMarqueePointerDown = useCallback((e) => {
     e.stopPropagation()  // prevent Konva stage from receiving this as a node deselect
-    const pt     = getMarqueePoint(e)
+    const pt   = getMarqueePoint(e)
     if (!pt) return
-    const rect   = marqueeRectRef.current
-    const nodeId = committedMarqueeNodeIdRef.current
-    let canvas = rasterCanvasRef.current[nodeId]
-    if (!canvas) {
-      canvas = rasterizeImageNode(nodeId)
+    const rect = marqueeRectRef.current
+    if (!rect) return
+
+    if (marqFloatRef.current) {
+      // Float already established — just resume moving it, no new cut
+      e.currentTarget.setPointerCapture(e.pointerId)
+      marqueePhaseRef.current  = 'moving'
+      marqMoveStartRef.current = { pt, rect }
+    } else {
+      // First pick — cut pixels from canvas
+      const nodeId = committedMarqueeNodeIdRef.current
+      let canvas = rasterCanvasRef.current[nodeId]
+      if (!canvas) {
+        canvas = rasterizeImageNode(nodeId)
+      }
+      if (!canvas) return
+      e.currentTarget.setPointerCapture(e.pointerId)
+      const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
+      onMarqueeStartRef.current()
+      if (wasImage) onConvertToRasterRef.current?.(nodeId)
+      marqueePhaseRef.current  = 'moving'
+      marqMoveStartRef.current = { pt, rect }
+      const fx = Math.round(rect.x),     fy = Math.round(rect.y)
+      const fw = Math.round(rect.width), fh = Math.round(rect.height)
+      if (fw < 1 || fh < 1) return
+      const float = document.createElement('canvas')
+      float.width  = fw
+      float.height = fh
+      float.getContext('2d').drawImage(canvas, fx, fy, fw, fh, 0, 0, fw, fh)
+      canvas.getContext('2d').clearRect(fx, fy, fw, fh)
+      stageRef.current?.batchDraw()
+      marqFloatRef.current    = float
+      marqFloatPosRef.current = { x: fx, y: fy }
+      setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fx, y: fy, width: fw, height: fh })
     }
-    if (!rect || !canvas) return
-    e.currentTarget.setPointerCapture(e.pointerId)
-    const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
-    onMarqueeStartRef.current()
-    if (wasImage) onConvertToRasterRef.current?.(nodeId)
-    marqueePhaseRef.current  = 'moving'
-    marqMoveStartRef.current = { pt, rect }
-    const fx = Math.round(rect.x),     fy = Math.round(rect.y)
-    const fw = Math.round(rect.width), fh = Math.round(rect.height)
-    if (fw < 1 || fh < 1) return
-    const float = document.createElement('canvas')
-    float.width  = fw
-    float.height = fh
-    float.getContext('2d').drawImage(canvas, fx, fy, fw, fh, 0, 0, fw, fh)
-    canvas.getContext('2d').clearRect(fx, fy, fw, fh)
-    stageRef.current?.batchDraw()
-    marqFloatRef.current    = float
-    marqFloatPosRef.current = { x: fx, y: fy }
-    setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fx, y: fy, width: fw, height: fh })
   }, [getMarqueePoint, stageRef, rasterizeImageNode])
 
   const handleSelectModeMarqueePointerUp = useCallback(() => {
     if (marqueePhaseRef.current !== 'moving') return
-    stampMarqueeFloat()
+    // Park the float — don't stamp yet, user may reposition again
     marqueePhaseRef.current = 'ready'
-    marqWasMovedRef.current = true
-    setMarqWasMoved(true)
     onMarqueeReadyRef.current(marqueeRectRef.current)
-  }, [stampMarqueeFloat])
+  }, [])
 
   const getDrawPoint = useCallback((e) => {
     if (!containerRef.current) return null
@@ -1003,8 +1002,8 @@ export default function CanvasStage({
                         style={{ animation: 'marchingAnts 0.35s linear infinite' }}
                       />
                     </svg>
-                    {/* Hit area — only when there's a canvas to move AND selection hasn't been moved yet */}
-                    {hasRasterCanvas && !marqWasMoved && (
+                    {/* Hit area — only over the selection rect, only when there's a canvas to move */}
+                    {hasRasterCanvas && (
                       <div
                         style={{
                           position: 'absolute',

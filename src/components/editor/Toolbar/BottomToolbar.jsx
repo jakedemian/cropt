@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, ChevronRight, ChevronDown } from 'lucide-react'
+import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, ChevronRight, ChevronDown, Circle } from 'lucide-react'
 
 const TOOLS = [
   { id: 'select',  title: 'Move',   Icon: MousePointer2 },
@@ -77,6 +77,10 @@ export default function BottomToolbar({
   // ── Hooks must be declared before any early returns (Rules of Hooks) ───────
   const [toolsExpanded, setToolsExpanded] = useState(false)
   const [bgOpen, setBgOpen] = useState(false)
+  const [sizeOverlayOpen, setSizeOverlayOpen] = useState(false)
+  const [sizeOverlayPos, setSizeOverlayPos] = useState({ left: 0, bottom: 0 })
+  const sizeBtnRef = useRef(null)
+  const sizeOverlayRef = useRef(null)
   const [showLeftFade,  setShowLeftFade]  = useState(false)
   const [showRightFade, setShowRightFade] = useState(false)
   const scrollRef = useRef(null)
@@ -104,6 +108,18 @@ export default function BottomToolbar({
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [bgOpen])
+
+  const isDrawing = activeTool === 'brush' || activeTool === 'eraser'
+
+  useEffect(() => {
+    if (!sizeOverlayOpen || !isDrawing) return
+    const handler = (e) => {
+      if (sizeBtnRef.current?.contains(e.target) || sizeOverlayRef.current?.contains(e.target)) return
+      setSizeOverlayOpen(false)
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [sizeOverlayOpen, isDrawing])
 
   const isBold = selectedNode?.fontStyle?.includes('bold')
   const isItalic = selectedNode?.fontStyle?.includes('italic')
@@ -227,8 +243,6 @@ export default function BottomToolbar({
 
   // ── Normal toolbar ──────────────────────────────────────────────────────────
 
-  const isDrawing = activeTool === 'brush' || activeTool === 'eraser'
-
   return (
     <footer className="flex h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
 
@@ -317,7 +331,48 @@ export default function BottomToolbar({
             />
           )}
 
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Mobile: toggle button that opens a vertical size overlay */}
+          <div className="relative sm:hidden shrink-0" ref={sizeBtnRef}>
+            <button
+              onClick={() => {
+                if (!sizeOverlayOpen && sizeBtnRef.current) {
+                  const rect = sizeBtnRef.current.getBoundingClientRect()
+                  setSizeOverlayPos({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 8 })
+                }
+                setSizeOverlayOpen((o) => !o)
+              }}
+              title="Brush size"
+              className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+                sizeOverlayOpen ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850]'
+              }`}
+            >
+              <Circle size={15} />
+            </button>
+
+            {sizeOverlayOpen && (
+              <div
+                ref={sizeOverlayRef}
+                className="fixed bg-[#2d3139] border border-white/10 rounded-xl shadow-2xl flex flex-col items-center gap-2 px-3 py-4"
+                style={{ left: sizeOverlayPos.left, bottom: sizeOverlayPos.bottom, transform: 'translateX(-50%)', zIndex: 50 }}
+              >
+                <span className="text-xs text-white/40 tabular-nums">{brushSize}px</span>
+                <input
+                  type="range"
+                  min={2}
+                  max={120}
+                  step={1}
+                  value={brushSize}
+                  onChange={(e) => onBrushSizeChange(Number(e.target.value))}
+                  className="accent-[#0fff95]"
+                  style={{ writingMode: 'vertical-lr', direction: 'rtl', width: '36px', height: '120px', cursor: 'pointer' }}
+                />
+                <span className="text-xs text-white/40 tabular-nums">2px</span>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: original inline horizontal slider */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
             <span className="text-xs text-white/40 whitespace-nowrap">Size</span>
             <input
               type="range"

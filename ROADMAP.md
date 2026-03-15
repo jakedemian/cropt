@@ -2,46 +2,31 @@
 
 This is a living document. Items are not guaranteed or time-bound — it reflects current thinking, not commitments.
 
+Specific bugs, features, and enhancements are tracked in [GitHub Issues](https://github.com/jakedemian/cropt/issues).
+
 ---
 
 ## Now — Stability & Polish
 
-- Fix export/copy canvas blink (offscreen canvas rendering)
-- Fix crop tool to support rotated images
-- General UX improvements to the editor
+Squashing bugs and refining the core editor experience.
 
 ---
 
 ## Next — Editor Power-Up
 
-- More text effects and styling options
-- ~~Document history (last 5 sessions, stored in IndexedDB)~~ — shipped
-- ~~Select tool~~ — shipped
-- ~~Brush / drawing tool~~ — shipped
-- ~~Eraser tool~~ — shipped
+Expanding the editor's capabilities with more styling options and tool improvements.
 
 ---
 
 ## Later — Community & Social
 
-- User accounts and upload ownership
-- Community feeds
-- Votes / reactions
-- Comments
-- Tags and search
-- User profiles and galleries
-- Meme template library
-- Featured / trending algorithm
-- View counts
+User accounts, profiles, reactions, comments, search, and a meme template library.
 
 ---
 
 ## Future — Infrastructure & Growth
 
-- CDN custom domain (`cdn.cropt.app`) for faster image delivery
-- PhotoDNA integration (CSAM hash matching)
-- Android / iOS native app wrapper
-- AI-assisted caption suggestions
+CDN custom domain, PhotoDNA integration, native app wrappers, AI-assisted features.
 
 ---
 

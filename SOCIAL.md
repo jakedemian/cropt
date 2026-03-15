@@ -1,13 +1,3 @@
 # Social Features — Plans & Notes
 
-## Improvements & Features
-
-| # | Description | Status |
-|---|-------------|--------|
-
----
-
-## Known Bugs
-
-| # | Description | Status |
-|---|-------------|--------|
+Bugs, features, and enhancements are tracked in [GitHub Issues](https://github.com/jakedemian/cropt/issues).

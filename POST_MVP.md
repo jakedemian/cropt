@@ -22,47 +22,6 @@ Set up `security@cropt.app` and `dmca@cropt.app` via Cloudflare Email Routing, t
 
 See `AUDIT.md` for the service tooling table and latest audit results. Run `/audit` to refresh all services or `/audit-neon`, `/audit-r2`, `/audit-aws`, `/audit-vercel` individually.
 
-### Issue Management via Claude Code
-
-Currently bugs and features are tracked in flat markdown files in the codebase. Investigate whether a proper issue management system (e.g. Linear, GitHub Issues, or similar) has an MCP server or Claude Code integration that would allow Claude to read and write issues directly, removing the need to track work in committed `.md` files.
-
----
-
-## Known Bugs
-
-- **Export/Copy canvas blink** — Brief flash when exporting. Root cause: resetting the Konva stage transform triggers a layer redraw the browser paints before the restore runs. Proper fix: capture via an offscreen canvas bypassing the stage transform entirely.
-
-- **Desktop PWA Cmd+Q doesn't trigger leave warning** — macOS Cmd+Q force-quits before `beforeunload` fires. OS-level limitation; no clean fix.
-
-- **iOS PWA swipe-close** — Cannot intercept the swipe-to-close gesture. OS-level limitation.
-
-- **Crop requires rotation = 0** — Cropping a rotated image is disabled. User must flatten rotation first.
-
----
-
-## v2+ Ideas
-
-### Editor
-- Multi-document tabs
-- Drawing / brush tools
-- Filters and color adjustments
-- Undo history beyond 50 steps
-
-### Feed & Social
-- User accounts + upload ownership
-- Votes / reactions
-- Comments
-- Tags and search
-- User profiles / galleries
-- Meme templates library
-- Featured / trending algorithm
-- View counts
-
-### Infrastructure
-- CDN custom domain (`cdn.cropt.app`) for R2 public URLs
-- PhotoDNA integration (CSAM hash matching)
-- Android / iOS native app wrapper
-
 ---
 
 ## Long-Term Vision

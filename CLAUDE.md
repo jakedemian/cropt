@@ -187,12 +187,11 @@ Current version is in `package.json` and displayed in the app's overflow menu (`
 
 ## Bug & Feature Tracking Process
 
-Bugs and improvements/features are logged in the relevant area file (`EDITOR.md`, `FEED.md`, `SOCIAL.md`) under `Known Bugs` or `Improvements & Features` respectively.
+Bugs, features, and enhancements are tracked in [GitHub Issues](https://github.com/jakedemian/cropt/issues).
 
-**Rules (apply equally to bugs and features):**
-- When a bug or enhancement is mentioned in any way, **first check if it's already logged**. If not, **logging it is the very first action** before any investigation or implementation.
-- When resolved or shipped, mark it as **Fixed** / **Done** in the appropriate file.
-- **Never delete entries.** The user will manually request cleanups.
+**Rules:**
+- When a bug or enhancement is mentioned in any way, **first check if it's already logged** (`gh issue list`). If not, **create an issue before any investigation or implementation**.
+- When resolved or shipped, **close the issue** (`gh issue close <number>`).
 
 ---
 

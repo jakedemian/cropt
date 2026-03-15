@@ -59,6 +59,6 @@ Ask all your questions at once in a single message — do not drip them one at a
 
 The conversation has reached a point where you have no remaining open questions and you believe you have everything needed to write a complete, detailed implementation plan. At that point, tell the user:
 
-> "I have everything I need. Run `/plan $ARGUMENTS` when you're ready."
+> "I have everything I need. Run `/plan` when you're ready."
 
 Do not start planning. Do not start implementing. Explore only.

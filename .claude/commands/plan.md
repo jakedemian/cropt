@@ -1,5 +1,7 @@
 # Plan an Implementation
 
+> **Note:** `/plan` takes no arguments. It relies entirely on the context established by a previously run `/explore` session in the current conversation.
+
 ## Before Anything Else
 
 Check whether `/explore` has already been run in this conversation for this issue. Look for evidence of:
@@ -13,7 +15,7 @@ If you do NOT find this context, stop immediately and respond with:
 >
 > `/plan` relies on the deep codebase knowledge and resolved questions gathered during `/explore`. Without it, the plan will be shallow and likely incomplete.
 >
-> Run `/explore $ARGUMENTS` first, complete the back-and-forth, and then return here.
+> Run `/explore <github issue number>` first, complete the back-and-forth, and then return here.
 
 Do not proceed. Do not attempt to re-derive the explore findings yourself.
 
@@ -23,7 +25,7 @@ Do not proceed. Do not attempt to re-derive the explore findings yourself.
 
 If `/explore` context is present, write a complete implementation plan to `PLAN.md` in the project root. Overwrite it if it already exists.
 
-The plan should be detailed enough that it could be handed to a developer (or to `/implement`) and executed without needing to re-investigate the codebase. It should reflect everything learned during `/explore`, including non-obvious nuances and edge cases.
+The plan should be detailed enough that it could be handed to a developer and executed without needing to re-investigate the codebase. It should reflect everything learned during `/explore`, including non-obvious nuances and edge cases.
 
 ---
 
@@ -76,6 +78,6 @@ If the user has feedback:
 
 Once the user confirms the plan is good, tell them:
 
-> "Plan is locked in. Start a new conversation and run `/implement $ARGUMENTS` when you're ready to build."
+> "Plan is locked in. You're ready to implement."
 
 Do not begin implementing. The user will initiate that separately.

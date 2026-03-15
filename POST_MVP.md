@@ -22,6 +22,10 @@ Set up `security@cropt.app` and `dmca@cropt.app` via Cloudflare Email Routing, t
 
 See `AUDIT.md` for the service tooling table and latest audit results. Run `/audit` to refresh all services or `/audit-neon`, `/audit-r2`, `/audit-aws`, `/audit-vercel` individually.
 
+### Issue Management via Claude Code
+
+Currently bugs and features are tracked in flat markdown files in the codebase. Investigate whether a proper issue management system (e.g. Linear, GitHub Issues, or similar) has an MCP server or Claude Code integration that would allow Claude to read and write issues directly, removing the need to track work in committed `.md` files.
+
 ---
 
 ## Known Bugs

@@ -19,6 +19,8 @@
 | 1 | **Flip + resize flip-flop** — If a node is flipped then resized via transform anchors, the image flips again on resize end. Resizing again flips it back. Toggles on every resize. | Open |
 | 2 | **Mobile tool chevron direction** — Chevron pointed right (collapsed) / left (expanded) instead of down (collapsed) / right (expanded). | Fixed |
 | 3 | **Mobile layer selection blocked by active tool** — On mobile, with certain tools active (e.g. brush), tapping a different layer in the layer panel does not select it. | Open |
+| 5 | **Layer selection blocked by active tool (all platforms)** — Switching the active layer only works when the Move tool is selected. Tool choice should be irrelevant to layer selection. | Open |
+| 6 | **Eraser tool on image layer creates new raster layer** — Selecting the eraser while an image node is the active layer creates a new raster layer and switches to it instead of staying on the current layer. | Open |
 | 4 | **Marquee pixel ops auto-rasterize image nodes** — Marquee delete and move on image nodes now auto-rasterize the image into a full-canvas paint layer before performing the operation. The original image node is replaced by a raster layer (undoable). | Fixed |
 
 ---

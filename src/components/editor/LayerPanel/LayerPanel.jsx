@@ -116,7 +116,7 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
 
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 flex flex-col bg-[#24272f] border-t border-white/10 rounded-t-xl shadow-2xl"
+      className="absolute bottom-0 left-0 right-0 z-20 flex flex-col bg-[#24272f] border-t border-white/10 rounded-t-xl shadow-2xl"
       style={{ maxHeight: '40%' }}
     >
       {/* Header */}

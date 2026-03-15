@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { nanoid } from 'nanoid'
 import { imageSize } from 'image-size'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { uploads } from '@/lib/schema'
 import { uploadToR2 } from '@/lib/r2'
 import { moderateImage } from '@/lib/rekognition'
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   const ipHash = createHash('sha256').update(ip).digest('hex')
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
 
-  const [{ value: recentCount }] = await db
+  const [{ value: recentCount }] = await getDb()
     .select({ value: count() })
     .from(uploads)
     .where(and(eq(uploads.ipHash, ipHash), gte(uploads.createdAt, oneHourAgo)))
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
   await uploadToR2(key, buffer, file.type)
 
   // 8. Insert into DB
-  await db.insert(uploads).values({
+  await getDb().insert(uploads).values({
     id,
     r2Key:     key,
     sizeBytes: file.size,

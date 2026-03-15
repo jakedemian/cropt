@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { uploads } from '@/lib/schema'
 import { eq, sql } from 'drizzle-orm'
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Increment report count and auto-flag if threshold reached
-  const [updated] = await db
+  const [updated] = await getDb()
     .update(uploads)
     .set({
       reportCount: sql`${uploads.reportCount} + 1`,

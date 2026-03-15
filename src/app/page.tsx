@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { uploads } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import FeedGrid from '@/components/feed/FeedGrid'
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const PAGE_SIZE = 20
 
 export default async function Home() {
-  const rows = await db
+  const rows = await getDb()
     .select({
       id:        uploads.id,
       r2Key:     uploads.r2Key,

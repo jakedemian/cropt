@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { uploads } from '@/lib/schema'
 import { eq, desc, lt, and } from 'drizzle-orm'
 
@@ -10,7 +10,7 @@ const PAGE_SIZE = 20
 export async function GET(request: NextRequest) {
   const cursor = request.nextUrl.searchParams.get('cursor')
 
-  const rows = await db
+  const rows = await getDb()
     .select({
       id:        uploads.id,
       r2Key:     uploads.r2Key,

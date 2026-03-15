@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { uploads } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import ViewerActions from './ViewerActions'
@@ -10,7 +10,7 @@ import Footer from '@/components/shared/Footer'
 import type { Metadata } from 'next'
 
 const getUpload = cache(async (id: string) => {
-  const rows = await db
+  const rows = await getDb()
     .select()
     .from(uploads)
     .where(and(eq(uploads.id, id), eq(uploads.flagged, false)))

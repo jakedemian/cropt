@@ -14,11 +14,11 @@ This is a living document. Items are not guaranteed or time-bound — it reflect
 
 ## Next — Editor Power-Up
 
-- Document history (last 5 sessions, stored in IndexedDB)
-- Select tool
-- Brush / drawing tool
-- Eraser tool
 - More text effects and styling options
+- ~~Document history (last 5 sessions, stored in IndexedDB)~~ — shipped
+- ~~Select tool~~ — shipped
+- ~~Brush / drawing tool~~ — shipped
+- ~~Eraser tool~~ — shipped
 
 ---
 

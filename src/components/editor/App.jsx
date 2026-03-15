@@ -362,7 +362,7 @@ export default function App() {
       setActiveTool('select')
       setEditingNodeId(null)
       setEditingOrigState(null)
-      setShowLayerPanel(false)
+      setShowLayerPanel(window.innerWidth < 640)
       setShowMobileHistory(false)
       // Reset all canvas state and history
       resetDocument()

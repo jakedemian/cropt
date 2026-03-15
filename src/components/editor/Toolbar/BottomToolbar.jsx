@@ -334,32 +334,28 @@ export default function BottomToolbar({
       )}
 
       {/* Layers toggle — hidden on desktop (handled by sidebar) */}
-      {!isDrawing && (
-        <button
-          onClick={onToggleLayerPanel}
-          className={`sm:hidden flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-            showLayerPanel
-              ? 'bg-white text-[#24272f]'
-              : 'bg-[#363b44] text-white hover:bg-[#424850]'
-          }`}
-        >
-          <Layers size={14} />
-        </button>
-      )}
+      <button
+        onClick={onToggleLayerPanel}
+        className={`sm:hidden flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+          showLayerPanel
+            ? 'bg-white text-[#24272f]'
+            : 'bg-[#363b44] text-white hover:bg-[#424850]'
+        }`}
+      >
+        <Layers size={14} />
+      </button>
 
       {/* Resize */}
-      {!isDrawing && (
-        <button
-          onClick={onEnterResize}
-          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
-          title="Resize canvas"
-        >
-          <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
-        </button>
-      )}
+      <button
+        onClick={onEnterResize}
+        className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+        title="Resize canvas"
+      >
+        <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
+      </button>
 
       {/* Crop — visible when a node or marquee selection exists */}
-      {!isDrawing && (selectedNode || marqueeSelection) && (
+      {(selectedNode || marqueeSelection) && (
         <button
           onClick={onEnterCanvasCrop}
           title="Crop canvas to selection"

@@ -9,85 +9,73 @@
 | **Cloudflare R2** | — | ✅ Working | ✅ Yes, via MCP |
 | **Vercel** | ✅ Installed (token expires) | ✅ Working (re-auth with `/mcp`) | ❌ Not possible (API doesn't expose usage/cost) |
 | **Neon** | ⬜ Not set up | ✅ Working (re-auth with `/mcp`) | ✅ Yes, via MCP |
-| **AWS Rekognition** | ✅ Configured (locked-down IAM) | ⬜ Not set up | ✅ Yes, via `cropt-billing` CLI profile |
+| **AWS Rekognition** | ✅ Configured (`cropt-billing` CLI profile) | ⬜ Not set up | ✅ Yes, via `aws ce` CLI |
 
 ---
 
 ## Neon (Postgres)
 
-*Last audited: 2026-03-12*
+*Last audited: 2026-03-15*
 
-- Plan: Free tier (quota resets 2026-04-01)
-- Project: `cropt-postgres`, Postgres 17, `us-east-1`, 1 branch (`production`)
-- Total uploads: 6
-- Flagged content: 0 (0%)
-- Uploads last 7 days: 6
-- Uploads last 30 days: 6
-- Total tracked storage: ~1.3 MB (1,362,990 bytes)
-- Compute used: 4,274 sec (~1.2 hrs) of ~190 hrs/month free — negligible
-- DB storage: ~29.5 MB of 512 MB free — negligible
-- Data transfer: ~218 KB of 5 GB free — negligible
-- Cost: $0 — well within free tier on all dimensions
-
-Recent uploads:
-
-| ID | Date | Size | Dimensions |
-|---|---|---|---|
-| QirBoANTRe | 2026-03-11 19:04 | 422 KB | 423×421 |
-| 4a10p6aLdm | 2026-03-11 18:54 | 23 KB | 110×100 |
-| 9SZbmu787A | 2026-03-11 18:28 | 122 KB | 618×235 |
-| lAFj7l7E16 | 2026-03-11 18:27 | 122 KB | 618×235 |
-| wInIGXwPnP | 2026-03-11 01:57 | 321 KB | 434×567 |
+- **Plan:** Free tier (quota resets 2026-04-01)
+- **Project:** `cropt-postgres`, 1 branch (`production`) — state: ready
+- **DB size:** ~7.3 MB (pg_database_size), ~29.5 MB logical branch size
+- **Tables:** `uploads` (32 kB, 10 columns)
+- **Total uploads:** 12 — oldest 2026-03-11, newest 2026-03-15
+- **Compute used:** 15,274 sec (~4.2 hrs) of ~191 hrs/month free
+- **Written data:** ~31.3 MB; **data transfer:** ~886 KB of 5 GB free
+- **Cost:** $0 — well within free tier on all dimensions
 
 ---
 
 ## Cloudflare R2
 
-*Last audited: 2026-03-12*
+*Last audited: 2026-03-15*
 
-- Bucket: `cropt-uploads`, Eastern North America (ENAM), Standard storage class
-- Created: 2026-03-11
-- Objects: 6 (all PNG)
-- Total size: ~1.3 MB (1,362,990 bytes)
-- Free tier limits: 10 GB storage, 1M Class A ops/month, 10M Class B ops/month
-- Status: well within all free tier limits — negligible usage
-- Cost: $0
+- **Buckets:** 2
+  - `cropt-uploads` (prod) — created 2026-03-11, region ENAM
+  - `cropt-uploads-dev` (dev) — created 2026-03-15
+- **Objects in `cropt-uploads`:** 12 files (all PNG)
+- **Total storage:** ~3.59 MB
+- **Largest file:** `DSIOglhF9E.png` — 917 KB
+- **Latest upload:** 2026-03-15
+- **Free tier limits:** 10 GB storage, 1M Class A ops/month, 10M Class B ops/month
+- **Cost:** $0 — well within free tier
 
-Note: Operation counts (Class A/B) are not exposed via the R2 API — check the Cloudflare dashboard for monthly op metrics if needed.
+Note: Operation counts (Class A/B) not exposed via R2 API — check Cloudflare dashboard if needed.
 
 ---
 
 ## AWS Rekognition
 
-*Last audited: 2026-03-12*
+*Last audited: 2026-03-15*
 
-- Plan: Free tier (5,000 images/month, first 12 months from account creation)
-- March 2026 spend (estimated, through 2026-03-12):
-  - Amazon Rekognition: $0.019 (~19 calls)
-  - Amazon S3: $0.000093 (unrelated to Cropt — personal bucket elsewhere)
-  - AWS Secrets Manager: $0.000005 (unrelated)
-  - All other services: $0.00
-- Free tier status: well within limits (19 of 5,000 free calls used)
-- Cost at scale: $0.001/image after free tier expires
+- **Plan:** Free tier (5,000 images/month, first 12 months from account creation)
+- **Feb 2026:** $0.00 (0 calls)
+- **Mar 1–15, 2026 (estimated):** $0.024 — 24 image moderation calls
+- **Rate:** $0.001/image — consistent with Rekognition Image Moderation pricing
+- **Free tier status:** 24 of 5,000 free calls used this month
+- **Cost at scale:** $0.001/image after free tier expires
 
 ---
 
 ## Vercel
 
-*Last audited: 2026-03-12*
+*Last audited: 2026-03-15*
 
-- Plan: Hobby, Node.js 24.x
-- Production: `cropt.app` — READY, 3 serverless functions
-- Last deploy: 2026-03-09 — `docs: expand environment splitting section in POST_MVP.md` (git push to main)
-- Last 10 deployments: all READY, no errors
-- Domains: `cropt.app`, `www.cropt.app`, `cropt.vercel.app`
-- Cost/usage (bandwidth, function hours): not queryable via API — check https://vercel.com/dashboard manually against Hobby limits (100GB bandwidth, 6,000 function-hours/month)
+- **Plan:** Hobby, Node.js 24.x
+- **Project:** `cropt` (`prj_AuVxeDaOVBMMQp52oga5uBMMrIsm`)
+- **Production:** `cropt.app` — READY, 3 serverless functions
+- **Latest deploy:** `docs: migrate bug/feature tracking to GitHub Issues` (086f422, 2026-03-15)
+- **Domains:** `cropt.app`, `www.cropt.app`, `cropt.vercel.app`
+- **Recent deployments:** Mix of READY and CANCELED (cancelations normal — superseded by rapid pushes)
+- **Cost/usage (bandwidth, function hours):** not queryable via API — check Vercel dashboard manually against Hobby limits (100 GB bandwidth, 6,000 function-hours/month)
 
 ---
 
 ## Overall Health
 
-*Last full audit: 2026-03-12*
+*Last full audit: 2026-03-15*
 
 **Status: ✅ Healthy**
 
@@ -95,8 +83,8 @@ Note: Operation counts (Class A/B) are not exposed via the R2 API — check the 
 |---|---|---|
 | Neon | ✅ Healthy — well within free tier | $0.00 |
 | Cloudflare R2 | ✅ Healthy — well within free tier | $0.00 |
-| AWS Rekognition | ✅ Healthy — well within free tier | ~$0.02 |
-| Vercel | ✅ Healthy — no build errors | $0.00 |
-| **Total** | | **~$0.02** |
+| AWS Rekognition | ✅ Healthy — well within free tier | ~$0.05 |
+| Vercel | ✅ Healthy — production live, no build errors | $0.00 |
+| **Total** | | **~$0.05** |
 
-No anomalies. No services approaching limits. DB and R2 are in sync (6 objects each). Zero flagged content.
+No anomalies. No services approaching limits. DB and R2 are in sync (12 objects each). Zero flagged content.

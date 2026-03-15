@@ -431,25 +431,30 @@ export default function App() {
     if (tool === 'brush' || tool === 'eraser') {
       // Ensure a raster node is selected to draw on
       if (selectedNode?.type !== 'raster') {
-        const id = uuidv4()
-        const count = nodes.filter((n) => n.type === 'raster').length + 1
-        pushHistory()
-        addNode({
-          id,
-          type: 'raster',
-          name: `Layer ${count}`,
-          x: 0,
-          y: 0,
-          width: canvasSize.width,
-          height: canvasSize.height,
-          dataUrl: null,
-          opacity: 1,
-          visible: true,
-          scaleX: 1,
-          scaleY: 1,
-          rotation: 0,
-        })
-        selectNode(id)
+        const existingRaster = nodes.findLast((n) => n.type === 'raster')
+        if (existingRaster) {
+          selectNode(existingRaster.id)
+        } else {
+          const id = uuidv4()
+          const count = nodes.filter((n) => n.type === 'raster').length + 1
+          pushHistory()
+          addNode({
+            id,
+            type: 'raster',
+            name: `Layer ${count}`,
+            x: 0,
+            y: 0,
+            width: canvasSize.width,
+            height: canvasSize.height,
+            dataUrl: null,
+            opacity: 1,
+            visible: true,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0,
+          })
+          selectNode(id)
+        }
       }
       setActiveTool(tool)
     } else if (tool === 'marquee') {

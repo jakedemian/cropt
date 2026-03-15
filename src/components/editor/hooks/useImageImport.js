@@ -29,8 +29,7 @@ export function useImageImport({ canvasSize, setCanvasSize, addNode, selectNode 
       const objectUrl = URL.createObjectURL(blob)
       const img = new window.Image()
       img.onload = () => {
-        const { src: resizedSrc, width: w, height: h } = downscaleIfNeeded(img)
-        const finalSrc = resizedSrc ?? objectUrl
+        const { width: w, height: h } = downscaleIfNeeded(img)
 
         // Expand canvas to fit the image if it's larger (MS Paint behaviour)
         const newCanvasWidth = Math.max(canvasSize.width, w)
@@ -42,23 +41,28 @@ export function useImageImport({ canvasSize, setCanvasSize, addNode, selectNode 
         const x = (newCanvasWidth - w) / 2
         const y = (newCanvasHeight - h) / 2
 
+        // Rasterize: draw the image centred onto a full-canvas offscreen canvas
+        const offscreen = document.createElement('canvas')
+        offscreen.width = newCanvasWidth
+        offscreen.height = newCanvasHeight
+        offscreen.getContext('2d').drawImage(img, x, y, w, h)
+        URL.revokeObjectURL(objectUrl)
+
         const id = uuidv4()
         addNode({
           id,
-          type: 'image',
+          type: 'raster',
           name: name.slice(0, 24) || 'Image',
-          src: finalSrc,
-          x,
-          y,
-          width: w,
-          height: h,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
+          x: 0,
+          y: 0,
+          width: newCanvasWidth,
+          height: newCanvasHeight,
+          dataUrl: offscreen.toDataURL('image/png'),
           opacity: 1,
           visible: true,
-          flipX: false,
-          cropRect: null,
+          scaleX: 1,
+          scaleY: 1,
+          rotation: 0,
         })
         selectNode(id)
       }

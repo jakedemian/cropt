@@ -142,7 +142,7 @@ See `.env.local.example` for all required variables. Never commit `.env.local`.
 | `R2_ACCOUNT_ID` | Cloudflare account ID |
 | `R2_ACCESS_KEY_ID` | R2 API token access key |
 | `R2_SECRET_ACCESS_KEY` | R2 API token secret |
-| `R2_BUCKET_NAME` | `cropt-uploads` |
+| `R2_BUCKET_NAME` | `cropt-uploads` (prod) / `cropt-uploads-dev` (dev) |
 | `R2_PUBLIC_URL` | Public R2 URL for serving images |
 | `REKOGNITION_ACCESS_KEY_ID` | IAM user key for Rekognition |
 | `REKOGNITION_SECRET_ACCESS_KEY` | IAM user secret for Rekognition |
@@ -162,6 +162,15 @@ vercel --prod
 ```
 
 **Production URL:** https://cropt.app
+
+## Environments
+
+| Environment | Services | When used |
+|-------------|----------|-----------|
+| **Production** | Prod Neon (`cropt`), R2 `cropt-uploads` | Vercel production deployments |
+| **Development** | Dev Neon (`cropt-dev`), R2 `cropt-uploads-dev` | Local dev (`.env.local`), `vercel dev` |
+
+`DATABASE_URL`, `R2_BUCKET_NAME`, and `R2_PUBLIC_URL` differ between environments. All other vars (R2 credentials, Rekognition) are shared.
 
 ---
 

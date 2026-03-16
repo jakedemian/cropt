@@ -462,7 +462,6 @@ export default function App() {
     } else if (tool === 'text') {
       setActiveTool('text')
       selectNode(null)
-      setShowLayerPanel(false)
     } else {
       setActiveTool('select')
     }
@@ -563,10 +562,6 @@ export default function App() {
   }
 
   // ── Text placement handlers ────────────────────────────────────────────────
-
-  const handleCancelTextPlace = () => {
-    setActiveTool('select')
-  }
 
   // Called by CanvasStage when the user clicks in text placement mode.
   const handlePlaceText = (canvasX, canvasY) => {
@@ -868,7 +863,6 @@ export default function App() {
         onCancelCrop={handleCancelCrop}
         activeTool={activeTool}
         onSetActiveTool={handleSetActiveTool}
-        onCancelTextPlace={handleCancelTextPlace}
         onEnterTextEdit={() => selectedNode?.type === 'text' && handleStartEditText(selectedNode.id)}
         onConfirmTextEdit={handleConfirmTextEdit}
         onCancelTextEdit={handleCancelTextEdit}

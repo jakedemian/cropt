@@ -55,7 +55,6 @@ export default function BottomToolbar({
   // Tool switching
   activeTool,
   onSetActiveTool,
-  onCancelTextPlace,
   // Text edit mode
   onEnterTextEdit,
   onConfirmTextEdit,
@@ -221,21 +220,6 @@ export default function BottomToolbar({
           className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
         >
           <Check size={16} /> Apply Crop
-        </button>
-      </footer>
-    )
-  }
-
-  // While in text placement mode, show instructions and cancel
-  if (activeTool === 'text') {
-    return (
-      <footer className="flex items-center justify-center gap-3 px-4 h-16 sm:h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
-        <span className="text-sm text-white/60">Tap on the canvas to place text</span>
-        <button
-          onClick={onCancelTextPlace}
-          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
-        >
-          <X size={16} /> Cancel
         </button>
       </footer>
     )

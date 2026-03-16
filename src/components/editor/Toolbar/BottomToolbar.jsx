@@ -40,7 +40,6 @@ export default function BottomToolbar({
   onAddImage,
   onFlip,
   onDelete,
-  onOpacityChange,
   onSetBackground,
   onToggleLayerPanel,
   marqueeSelection,
@@ -55,7 +54,6 @@ export default function BottomToolbar({
   onEnterCrop,
   onConfirmCrop,
   onCancelCrop,
-  onOpacityStart,
   // Tool switching
   activeTool,
   onSetActiveTool,
@@ -531,20 +529,6 @@ export default function BottomToolbar({
           >
             <Trash2 size={14} /> Delete
           </button>
-
-          <div className="flex items-center gap-2 ml-1 shrink-0">
-            <span className="hidden sm:block text-xs text-white/40 whitespace-nowrap">Opacity</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={selectedNode.opacity}
-              onPointerDown={onOpacityStart}
-              onChange={(e) => onOpacityChange(parseFloat(e.target.value))}
-              className="w-28 sm:w-24 accent-[#0fff95]"
-            />
-          </div>
         </>
       )}
 
@@ -655,20 +639,6 @@ export default function BottomToolbar({
           >
             <Trash2 size={14} /> Delete
           </button>
-
-          <div className="flex items-center gap-2 ml-1 shrink-0">
-            <span className="hidden sm:block text-xs text-white/40 whitespace-nowrap">Opacity</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={selectedNode.opacity}
-              onPointerDown={onOpacityStart}
-              onChange={(e) => onOpacityChange(parseFloat(e.target.value))}
-              className="w-28 sm:w-24 accent-[#0fff95]"
-            />
-          </div>
         </>
       )}
 
@@ -683,20 +653,6 @@ export default function BottomToolbar({
           >
             <Trash2 size={14} /> Delete
           </button>
-
-          <div className="flex items-center gap-2 ml-1 shrink-0">
-            <span className="hidden sm:block text-xs text-white/40 whitespace-nowrap">Opacity</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={selectedNode.opacity}
-              onPointerDown={onOpacityStart}
-              onChange={(e) => onOpacityChange(parseFloat(e.target.value))}
-              className="w-28 sm:w-24 accent-[#0fff95]"
-            />
-          </div>
         </>
       )}
 

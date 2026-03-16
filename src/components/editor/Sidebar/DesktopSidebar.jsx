@@ -11,6 +11,8 @@ export default function DesktopSidebar({
   onToggleVisible,
   onReorder,
   onNewLayer,
+  onOpacityStart,
+  onOpacityChange,
   historyEntries,
   onRestoreDocument,
 }) {
@@ -31,6 +33,8 @@ export default function DesktopSidebar({
           onToggleVisible={onToggleVisible}
           onReorder={onReorder}
           onNewLayer={onNewLayer}
+          onOpacityStart={onOpacityStart}
+          onOpacityChange={onOpacityChange}
         />
       </div>
 

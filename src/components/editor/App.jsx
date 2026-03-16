@@ -145,7 +145,6 @@ export default function App() {
   const { inputRef, openPicker, handleFileChange, handlePaste } = useImageImport({ canvasSize, setCanvasSize, addNode: addNodeWithHistory, selectNode })
 
   // Wrap updateNode for canvas interactions (drag end, transform end).
-  // Opacity is handled separately via onOpacityStart.
   const updateNodeWithHistory = useCallback((id, updates) => {
     pushHistory()
     updateNode(id, updates)
@@ -754,6 +753,8 @@ export default function App() {
                 onReorder={(newNodes) => { pushHistory(); reorderNodes(newNodes) }}
                 onNewLayer={handleNewRasterLayer}
                 onClose={() => setShowLayerPanel(false)}
+                onOpacityStart={() => pushHistory()}
+                onOpacityChange={(id, v) => updateNode(id, { opacity: v })}
               />
             </div>
           )}
@@ -804,6 +805,8 @@ export default function App() {
             }}
             onReorder={(newNodes) => { pushHistory(); reorderNodes(newNodes) }}
             onNewLayer={handleNewRasterLayer}
+            onOpacityStart={() => pushHistory()}
+            onOpacityChange={(id, v) => updateNode(id, { opacity: v })}
             historyEntries={historyEntries}
             onRestoreDocument={handleRestoreDocument}
           />
@@ -822,8 +825,6 @@ export default function App() {
         onAddImage={openPicker}
         onFlip={() => { if (selectedNode) { pushHistory(); updateNode(selectedNode.id, { flipX: !selectedNode.flipX }) } }}
         onDelete={() => { if (selectedNode) { pushHistory(); removeNode(selectedNode.id) } }}
-        onOpacityStart={() => pushHistory()}
-        onOpacityChange={(v) => selectedNode && updateNode(selectedNode.id, { opacity: v })}
         onSetBackground={(bg) => { pushHistory(); setCanvasBackground(bg) }}
         onToggleLayerPanel={() => setShowLayerPanel((p) => !p)}
         marqueeSelection={marqueeSelection}

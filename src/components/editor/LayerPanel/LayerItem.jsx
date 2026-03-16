@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { Eye, EyeOff, Paintbrush, Move } from 'lucide-react'
 
 export default function LayerItem({
@@ -12,7 +13,59 @@ export default function LayerItem({
   onActivateTransform,
   onToggleVisible,
   onDragHandlePointerDown,
+  onOpacityStart,
+  onOpacityChange,
 }) {
+  const [opacityPopoverOpen, setOpacityPopoverOpen] = useState(false)
+  const [popoverPos, setPopoverPos] = useState({ left: 0, bottom: 0 })
+  const opacityBtnRef = useRef(null)
+  const opacityOverlayRef = useRef(null)
+  const scrubStateRef = useRef({ active: false, startX: 0, startOpacity: 1, didMove: false })
+
+  useEffect(() => {
+    if (!opacityPopoverOpen) return
+    const handler = (e) => {
+      if (opacityBtnRef.current?.contains(e.target) || opacityOverlayRef.current?.contains(e.target)) return
+      setOpacityPopoverOpen(false)
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [opacityPopoverOpen])
+
+  const handleOpacityPointerDown = (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const s = scrubStateRef.current
+    s.active = true
+    s.startX = e.clientX
+    s.startOpacity = node.opacity ?? 1
+    s.didMove = false
+    e.currentTarget.setPointerCapture(e.pointerId)
+    onOpacityStart?.()
+  }
+
+  const handleOpacityPointerMove = (e) => {
+    const s = scrubStateRef.current
+    if (!s.active) return
+    const delta = (e.clientX - s.startX) / 150
+    if (Math.abs(e.clientX - s.startX) > 4) s.didMove = true
+    const newOpacity = Math.min(1, Math.max(0, s.startOpacity + delta))
+    onOpacityChange?.(node.id, newOpacity)
+  }
+
+  const handleOpacityPointerUp = (e) => {
+    e.stopPropagation()
+    const s = scrubStateRef.current
+    if (!s.didMove && s.active) {
+      if (opacityBtnRef.current) {
+        const rect = opacityBtnRef.current.getBoundingClientRect()
+        setPopoverPos({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 8 })
+      }
+      setOpacityPopoverOpen(true)
+    }
+    s.active = false
+  }
+
   return (
     <>
       {/* Drop indicator — above this item */}
@@ -74,6 +127,46 @@ export default function LayerItem({
         <span className="flex-1 text-xs text-white truncate">
           {node.name || (node.type === 'text' ? 'Text' : `Layer ${index + 1}`)}
         </span>
+
+        {/* Opacity scrub button */}
+        <div className="relative shrink-0" ref={opacityBtnRef}>
+          <button
+            className="relative w-11 text-xs text-white/50 hover:text-white cursor-ew-resize transition-colors text-center select-none px-1 pb-1"
+            style={{ touchAction: 'none' }}
+            onPointerDown={handleOpacityPointerDown}
+            onPointerMove={handleOpacityPointerMove}
+            onPointerUp={handleOpacityPointerUp}
+            title="Drag to adjust opacity · tap for slider"
+          >
+            {Math.round((node.opacity ?? 1) * 100)}%
+            <span
+              className="absolute bottom-0 left-0 h-0.5 rounded-full bg-[#0fff95]/50"
+              style={{ width: `${(node.opacity ?? 1) * 100}%` }}
+            />
+          </button>
+
+          {opacityPopoverOpen && (
+            <div
+              ref={opacityOverlayRef}
+              className="fixed bg-[#2d3139] border border-white/10 rounded-xl shadow-2xl flex flex-col items-center gap-2 px-3 py-4"
+              style={{ left: popoverPos.left, bottom: popoverPos.bottom, transform: 'translateX(-50%)', zIndex: 50 }}
+            >
+              <span className="text-xs text-white/40 tabular-nums">{Math.round((node.opacity ?? 1) * 100)}%</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={node.opacity ?? 1}
+                onPointerDown={onOpacityStart}
+                onChange={(e) => onOpacityChange?.(node.id, parseFloat(e.target.value))}
+                className="accent-[#0fff95]"
+                style={{ writingMode: 'vertical-lr', direction: 'rtl', width: '36px', height: '120px', cursor: 'pointer' }}
+              />
+              <span className="text-xs text-white/40 tabular-nums">0%</span>
+            </div>
+          )}
+        </div>
 
         {/* Transform / move button — activates transformer for this layer */}
         <button

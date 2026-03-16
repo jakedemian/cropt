@@ -4,7 +4,7 @@ import LayerItem from './LayerItem'
 
 // embedded=true: renders as a flex column for use inside the desktop sidebar.
 // embedded=false (default): renders as an absolute bottom overlay for mobile.
-export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, onSelectNode, onActivateTransform, onToggleVisible, onReorder, onNewLayer, onClose, embedded = false }) {
+export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, onSelectNode, onActivateTransform, onToggleVisible, onReorder, onNewLayer, onClose, onOpacityStart, onOpacityChange, embedded = false }) {
   const [dragIndex, setDragIndex] = useState(null)   // panel-index being dragged
   const [dropIndex, setDropIndex] = useState(null)   // 0..n insertion point
   const listRef = useRef(null)
@@ -105,6 +105,8 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
                   onActivateTransform={() => onActivateTransform(node.id)}
                   onToggleVisible={() => onToggleVisible(node.id)}
                   onDragHandlePointerDown={(e) => handleDragHandlePointerDown(panelIndex, e)}
+                  onOpacityStart={onOpacityStart}
+                  onOpacityChange={onOpacityChange}
                 />
               </div>
             )
@@ -172,6 +174,8 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
                 onSelect={() => onSelectNode(node.id)}
                 onToggleVisible={() => onToggleVisible(node.id)}
                 onDragHandlePointerDown={(e) => handleDragHandlePointerDown(panelIndex, e)}
+                onOpacityStart={onOpacityStart}
+                onOpacityChange={onOpacityChange}
               />
             </div>
           )

@@ -169,6 +169,14 @@ export default function CanvasStage({
 
       const canvas = next[node.id]
 
+      // Resize canvas if node dimensions changed (e.g. after canvas crop or undo)
+      if (canvas.width !== node.width || canvas.height !== node.height) {
+        canvas.width  = node.width   // also clears canvas content as a side-effect
+        canvas.height = node.height
+        cache[node.id] = null        // force dataUrl reload on next check
+        changed = true
+      }
+
       // dataUrl changed externally (undo/redo/restore) — reload pixels
       if (node.dataUrl !== cache[node.id]) {
         const ctx = canvas.getContext('2d')

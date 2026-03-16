@@ -849,14 +849,18 @@ export default function CanvasStage({
 
       const scaleBy = dist / lastDist.current
       const stage = stageRef.current
+      // Capture ref values before the async updater runs — handleTouchEnd or
+      // handleTouchStart may null these refs before React executes the callback.
+      const prevCenter = lastCenter.current
 
       setStageViewport((prev) => {
+        if (!prevCenter || !stage) return prev
         const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev.scale * scaleBy))
         const stagePos = stage.getAbsolutePosition()
         const px = (center.x - stagePos.x) / prev.scale
         const py = (center.y - stagePos.y) / prev.scale
-        const dx = center.x - lastCenter.current.x
-        const dy = center.y - lastCenter.current.y
+        const dx = center.x - prevCenter.x
+        const dy = center.y - prevCenter.y
         return {
           x: prev.x + dx - px * (newScale - prev.scale),
           y: prev.y + dy - py * (newScale - prev.scale),

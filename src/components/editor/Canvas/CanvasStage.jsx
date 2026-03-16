@@ -12,6 +12,82 @@ import CanvasCropHandles from './CanvasCropHandles'
 
 const MIN_SCALE = 0.1
 const MAX_SCALE = 8
+const MIN_DRAG_CANVAS_PX = 20  // minimum canvas-unit width to treat as a bounded drag vs a click
+
+function TextPlaceOverlay({ stageViewport, onPlaceText }) {
+  const [dragRect, setDragRect] = useState(null) // screen coords { x, y, w, h }
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, moved: false })
+
+  const toCanvas = (screenX, screenY, containerRect) => ({
+    x: (screenX - containerRect.left - stageViewport.x) / stageViewport.scale,
+    y: (screenY - containerRect.top  - stageViewport.y) / stageViewport.scale,
+  })
+
+  return (
+    <div
+      className="absolute inset-0"
+      style={{ cursor: 'crosshair', zIndex: 10 }}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        const r = dragRef.current
+        r.active  = true
+        r.moved   = false
+        r.startX  = e.clientX
+        r.startY  = e.clientY
+        r.containerRect = e.currentTarget.getBoundingClientRect()
+        setDragRect(null)
+      }}
+      onPointerMove={(e) => {
+        const r = dragRef.current
+        if (!r.active) return
+        const dx = e.clientX - r.startX
+        const dy = e.clientY - r.startY
+        if (!r.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return
+        r.moved = true
+        const x = dx >= 0 ? r.startX : e.clientX
+        const y = dy >= 0 ? r.startY : e.clientY
+        const containerLeft = r.containerRect.left
+        const containerTop  = r.containerRect.top
+        setDragRect({ x: x - containerLeft, y: y - containerTop, w: Math.abs(dx), h: Math.abs(dy) })
+      }}
+      onPointerUp={(e) => {
+        const r = dragRef.current
+        if (!r.active) return
+        r.active = false
+        setDragRect(null)
+
+        const containerRect = r.containerRect
+        const origin = toCanvas(r.startX, r.startY, containerRect)
+
+        if (r.moved) {
+          const end = toCanvas(e.clientX, e.clientY, containerRect)
+          const canvasW = Math.abs(end.x - origin.x)
+          const canvasX = Math.min(origin.x, end.x)
+          const canvasY = Math.min(origin.y, end.y)
+          if (canvasW >= MIN_DRAG_CANVAS_PX) {
+            onPlaceText(canvasX, canvasY, canvasW)
+            return
+          }
+        }
+        onPlaceText(origin.x, origin.y)
+      }}
+    >
+      {dragRect && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left:   dragRect.x,
+            top:    dragRect.y,
+            width:  dragRect.w,
+            height: dragRect.h,
+            border: '1.5px dashed #0fff95',
+            boxSizing: 'border-box',
+          }}
+        />
+      )}
+    </div>
+  )
+}
 
 // Watermark tile constants — tweak these to adjust the stage background pattern.
 const WATERMARK_TILE_W  = 280   // px — tile width; smaller = denser horizontal repeat
@@ -1155,19 +1231,11 @@ export default function CanvasStage({
             </div>
           )}
 
-          {/* DOM overlay: crosshair click-to-place for text placement mode */}
+          {/* DOM overlay: crosshair click-to-place / drag-to-bound for text placement mode */}
           {textPlaceMode && (
-            <div
-              className="absolute inset-0"
-              style={{ cursor: 'crosshair', zIndex: 10 }}
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect()
-                const screenX = e.clientX - rect.left
-                const screenY = e.clientY - rect.top
-                const canvasX = (screenX - stageViewport.x) / stageViewport.scale
-                const canvasY = (screenY - stageViewport.y) / stageViewport.scale
-                onPlaceText(canvasX, canvasY)
-              }}
+            <TextPlaceOverlay
+              stageViewport={stageViewport}
+              onPlaceText={onPlaceText}
             />
           )}
 

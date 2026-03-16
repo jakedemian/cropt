@@ -563,8 +563,9 @@ export default function App() {
 
   // ── Text placement handlers ────────────────────────────────────────────────
 
-  // Called by CanvasStage when the user clicks in text placement mode.
-  const handlePlaceText = (canvasX, canvasY) => {
+  // Called by CanvasStage when the user clicks or drags in text placement mode.
+  // width is provided only when the user dragged to define a bounding box.
+  const handlePlaceText = (canvasX, canvasY, width) => {
     const id = uuidv4()
     const textNode = {
       id,
@@ -573,8 +574,8 @@ export default function App() {
       text: '',
       x: canvasX,
       y: canvasY,
-      width: 0,        // 0 = auto-width (single-line, expands with content)
-      fontSize: 60,
+      width: width ?? 0,  // 0 = auto-width (single-line, expands with content)
+      fontSize: 36,
       fontFamily: 'Anton',
       fontStyle: 'normal',
       fill: '#ffffff',

@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, ChevronRight, ChevronDown, Circle } from 'lucide-react'
+import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Wrench, ChevronLeft, ChevronRight, Circle } from 'lucide-react'
 
 const TOOLS = [
   { id: 'select',  title: 'Move',   Icon: MousePointer2 },
@@ -107,6 +107,7 @@ export default function BottomToolbar({
   }, [bgOpen])
 
   const isDrawing = activeTool === 'brush' || activeTool === 'eraser'
+  const ActiveToolIcon = TOOLS.find(t => t.id === activeTool)?.Icon ?? TOOLS[0].Icon
 
   useEffect(() => {
     if (!sizeOverlayOpen || !isDrawing) return
@@ -271,14 +272,21 @@ export default function BottomToolbar({
 
       {/* Tool selector */}
 
-      {/* Mobile: chevron toggle + collapsible list */}
-      <button
-        className="sm:hidden w-10 h-10 flex items-center justify-center rounded bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850] transition-colors shrink-0"
-        onClick={() => setToolsExpanded((p) => !p)}
-        title={toolsExpanded ? 'Hide tools' : 'Show tools'}
-      >
-        {toolsExpanded ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
-      </button>
+      {/* Mobile: wrench toggle + active tool indicator + collapsible list */}
+      <div className="sm:hidden flex items-center shrink-0">
+        <button
+          className="w-10 h-10 flex items-center justify-center rounded bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850] transition-colors"
+          onClick={() => setToolsExpanded((p) => !p)}
+          title={toolsExpanded ? 'Hide tools' : 'Show tools'}
+        >
+          {toolsExpanded ? <ChevronLeft size={18} /> : <><Wrench size={17} /><ChevronRight size={14} className="-ml-0.5" /></>}
+        </button>
+        {!toolsExpanded && (
+          <span className={`w-7 h-7 flex items-center justify-center pointer-events-none ${activeTool === 'eraser' ? 'text-red-400' : 'text-[#0fff95]'}`}>
+            <ActiveToolIcon size={14} />
+          </span>
+        )}
+      </div>
 
       <div
         className="sm:hidden overflow-hidden transition-all duration-200 ease-out shrink-0"
@@ -289,7 +297,7 @@ export default function BottomToolbar({
             <button
               key={tool.id}
               title={tool.title}
-              onClick={() => onSetActiveTool(tool.id)}
+              onClick={() => { onSetActiveTool(tool.id); setToolsExpanded(false) }}
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 ${activeTool === tool.id ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}
             >
               <tool.Icon size={18} />

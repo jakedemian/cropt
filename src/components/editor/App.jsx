@@ -483,22 +483,22 @@ export default function App() {
 
     pushHistory()
 
-    const imageNode = {
+    const rasterNode = {
       id: node.id,
-      type: 'image',
+      type: 'raster',
       name: node.name || 'Text',
       x: rect.x,
       y: rect.y,
       width: rect.width,
       height: rect.height,
-      src,
+      dataUrl: src,
       scaleX: 1,
       scaleY: 1,
       rotation: 0,
       opacity: node.opacity ?? 1,
       visible: node.visible ?? true,
     }
-    replaceNodes(nodes.map((n) => (n.id === nodeId ? imageNode : n)))
+    replaceNodes(nodes.map((n) => (n.id === nodeId ? rasterNode : n)))
   }, [editingNodeId, nodes, pushHistory, replaceNodes, stageRef])
 
   // ── Unified tool switching ─────────────────────────────────────────────────

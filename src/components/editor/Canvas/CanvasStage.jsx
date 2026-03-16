@@ -214,8 +214,9 @@ export default function CanvasStage({
   const nodesRef = useRef(nodes)
   useEffect(() => { nodesRef.current = nodes }, [nodes])
 
-  const isDrawingRef = useRef(false)
-  const lastDrawPt   = useRef(null)
+  const isDrawingRef  = useRef(false)
+  const lastDrawPt    = useRef(null)
+  const drawPanStartRef = useRef(null) // { clientX, clientY, vp } — set when drag begins outside canvas
   const [brushCursorPos, setBrushCursorPos] = useState(null)
 
   // ── Marquee tool ───────────────────────────────────────────────────────────
@@ -247,6 +248,7 @@ export default function CanvasStage({
   const marqMoveStartRef   = useRef(null)   // { pt: {x,y}, rect: {x,y,width,height} }
   const marqFloatRef       = useRef(null)   // HTMLCanvasElement — cut pixels
   const marqFloatPosRef    = useRef(null)   // { x, y } current canvas pos of floating content
+  const marqPanStartRef    = useRef(null)   // { clientX, clientY, vp, moved } — set when drag begins outside canvas
   const prevMarqueeNodeIdRef = useRef(null) // previous marqueeNodeId — used to distinguish tool-switch from node-change
   const [marqFloatDisplay, setMarqFloatDisplay] = useState(null) // { dataUrl, x, y, width, height }
 
@@ -426,10 +428,24 @@ export default function CanvasStage({
   }, [])
 
   const handleMarqueePointerDown = useCallback((e) => {
-    const pt   = getMarqueePoint(e)
+    // If the pointer started outside the canvas bounds, pan instead of drawing.
+    const containerRect = containerRef.current?.getBoundingClientRect()
+    if (containerRect) {
+      const vp = stageViewportRef.current
+      const cs = canvasSizeRef.current
+      const px = e.clientX - containerRect.left
+      const py = e.clientY - containerRect.top
+      const outsideCanvas = px < vp.x || px > vp.x + cs.width * vp.scale
+        || py < vp.y || py > vp.y + cs.height * vp.scale
+      if (outsideCanvas) {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        marqPanStartRef.current = { clientX: e.clientX, clientY: e.clientY, vp, moved: false }
+        return
+      }
+    }
+
+    const pt = getMarqueePoint(e)
     if (!pt) return
-    const rect  = marqueeRectRef.current
-    const phase = marqueePhaseRef.current
 
     // Always begin drawing a new selection — stamp any existing float first.
     // Dragging the selection is handled by the select tool overlay.
@@ -442,6 +458,15 @@ export default function CanvasStage({
   }, [getMarqueePoint, stageRef, stampMarqueeFloat, rasterizeImageNode])
 
   const handleMarqueePointerMove = useCallback((e) => {
+    if (marqPanStartRef.current) {
+      const start = marqPanStartRef.current
+      const dx = e.clientX - start.clientX
+      const dy = e.clientY - start.clientY
+      if (!start.moved && Math.hypot(dx, dy) > 4) start.moved = true
+      if (start.moved) setStageViewport({ ...start.vp, x: start.vp.x + dx, y: start.vp.y + dy })
+      return
+    }
+
     const pt    = getMarqueePoint(e)
     if (!pt) return
     const phase = marqueePhaseRef.current
@@ -464,9 +489,24 @@ export default function CanvasStage({
       setMarqFloatDisplay((prev) => prev ? { ...prev, x: nx, y: ny } : prev)
       setMarqueeRect({ x: nx, y: ny, width: ms.rect.width, height: ms.rect.height })
     }
-  }, [getMarqueePoint])
+  }, [getMarqueePoint, setStageViewport])
 
   const handleMarqueePointerUp = useCallback(() => {
+    if (marqPanStartRef.current) {
+      const { moved } = marqPanStartRef.current
+      marqPanStartRef.current = null
+      if (!moved) {
+        // Bare tap outside canvas — clear the selection
+        stampMarqueeFloat()
+        setMarqueeRect(null)
+        marqueePhaseRef.current = 'idle'
+        committedMarqueeNodeIdRef.current = null
+        setCommittedMarqueeNodeId(null)
+        onMarqueeReadyRef.current(null)
+      }
+      return
+    }
+
     const phase = marqueePhaseRef.current
     if (phase === 'drawing') {
       const rect = marqueeRectRef.current
@@ -486,7 +526,7 @@ export default function CanvasStage({
       marqueePhaseRef.current = 'ready'
       onMarqueeReadyRef.current(marqueeRectRef.current)
     }
-  }, [])
+  }, [stampMarqueeFloat])
 
   // In Move (select) tool mode: clicking inside the marching ants initiates pixel move
   const handleSelectModeMarqueePointerDown = useCallback((e) => {
@@ -577,6 +617,22 @@ export default function CanvasStage({
   }, [paintDot])
 
   const handleDrawPointerDown = useCallback((e) => {
+    // If the pointer started outside the canvas bounds, pan instead of drawing.
+    const containerRect = containerRef.current?.getBoundingClientRect()
+    if (containerRect) {
+      const vp = stageViewportRef.current
+      const cs = canvasSizeRef.current
+      const px = e.clientX - containerRect.left
+      const py = e.clientY - containerRect.top
+      const outsideCanvas = px < vp.x || px > vp.x + cs.width * vp.scale
+        || py < vp.y || py > vp.y + cs.height * vp.scale
+      if (outsideCanvas) {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        drawPanStartRef.current = { clientX: e.clientX, clientY: e.clientY, vp }
+        return
+      }
+    }
+
     e.currentTarget.setPointerCapture(e.pointerId)
     onDrawStart()
     isDrawingRef.current = true
@@ -590,6 +646,14 @@ export default function CanvasStage({
   }, [onDrawStart, getDrawPoint, paintDot, stageRef])
 
   const handleDrawPointerMove = useCallback((e) => {
+    if (drawPanStartRef.current) {
+      const start = drawPanStartRef.current
+      const dx = e.clientX - start.clientX
+      const dy = e.clientY - start.clientY
+      setStageViewport({ ...start.vp, x: start.vp.x + dx, y: start.vp.y + dy })
+      return
+    }
+
     if (!isDrawingRef.current) return
     const pt = getDrawPoint(e)
     if (!pt || !lastDrawPt.current) return
@@ -598,9 +662,14 @@ export default function CanvasStage({
     paintLine(canvas.getContext('2d'), lastDrawPt.current.x, lastDrawPt.current.y, pt.x, pt.y)
     lastDrawPt.current = pt
     stageRef.current?.batchDraw()
-  }, [getDrawPoint, paintLine, stageRef])
+  }, [getDrawPoint, paintLine, stageRef, setStageViewport])
 
   const handleDrawPointerUp = useCallback(() => {
+    if (drawPanStartRef.current) {
+      drawPanStartRef.current = null
+      return
+    }
+
     if (!isDrawingRef.current) return
     isDrawingRef.current = false
     lastDrawPt.current   = null
@@ -729,6 +798,15 @@ export default function CanvasStage({
 
   // ── Stage drag ─────────────────────────────────────────────────────────────
 
+  const handleStageDragMove = useCallback(
+    (e) => {
+      if (e.target !== stageRef.current) return
+      const stage = stageRef.current
+      setStageViewport((prev) => ({ ...prev, x: stage.x(), y: stage.y() }))
+    },
+    [setStageViewport, stageRef]
+  )
+
   const handleStageDragEnd = useCallback(
     (e) => {
       if (e.target !== stageRef.current) return
@@ -741,9 +819,17 @@ export default function CanvasStage({
   const handleStageClick = useCallback(
     (e) => {
       if (e.target !== stageRef.current) return
+      if (marqueeRectRef.current) {
+        stampMarqueeFloat()
+        setMarqueeRect(null)
+        marqueePhaseRef.current = 'idle'
+        committedMarqueeNodeIdRef.current = null
+        setCommittedMarqueeNodeId(null)
+        onMarqueeReadyRef.current(null)
+      }
       if (!textPlaceMode) onActivateTransform(null)
     },
-    [onActivateTransform, stageRef, textPlaceMode]
+    [onActivateTransform, stageRef, textPlaceMode, stampMarqueeFloat]
   )
 
   const isInteractive = !canvasResizeMode && !cropMode && !canvasCropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode
@@ -774,6 +860,7 @@ export default function CanvasStage({
             scaleX={stageViewport.scale}
             scaleY={stageViewport.scale}
             draggable={!canvasResizeMode && !cropMode && !canvasCropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode}
+            onDragMove={handleStageDragMove}
             onDragEnd={handleStageDragEnd}
             onWheel={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleWheel}
             onTouchMove={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleTouchMove}
@@ -911,6 +998,7 @@ export default function CanvasStage({
               style={{ cursor: 'none', zIndex: 10, touchAction: 'none' }}
               onPointerDown={handleDrawPointerDown}
               onPointerMove={(e) => {
+                if (drawPanStartRef.current) { setBrushCursorPos(null); handleDrawPointerMove(e); return }
                 const rect = containerRef.current?.getBoundingClientRect()
                 if (rect) setBrushCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
                 handleDrawPointerMove(e)

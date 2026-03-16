@@ -33,7 +33,7 @@ export default function TopBar({
   }
 
   return (
-    <header className="grid grid-cols-[1fr_auto_1fr] items-center px-3 h-12 bg-[#24272f] text-white shrink-0">
+    <header className="grid grid-cols-[1fr_auto_1fr] items-center px-3 h-14 sm:h-12 bg-[#24272f] text-white shrink-0">
 
       {/* ── Left: logo ── */}
       <div className="flex items-center gap-1.5">
@@ -47,17 +47,17 @@ export default function TopBar({
           onClick={onUndo}
           disabled={!canUndo || inMode}
           title="Undo (Cmd+Z)"
-          className="w-9 h-9 flex items-center justify-center rounded text-base font-medium transition-colors bg-[#363b44] text-white hover:bg-[#424850] disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded text-base font-medium transition-colors bg-[#363b44] text-white hover:bg-[#424850] disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <Undo2 size={16} />
+          <Undo2 size={18} />
         </button>
         <button
           onClick={onRedo}
           disabled={!canRedo || inMode}
           title="Redo (Cmd+Shift+Z)"
-          className="w-9 h-9 flex items-center justify-center rounded text-base font-medium transition-colors bg-[#363b44] text-white hover:bg-[#424850] disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded text-base font-medium transition-colors bg-[#363b44] text-white hover:bg-[#424850] disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <Redo2 size={16} />
+          <Redo2 size={18} />
         </button>
       </div>
 
@@ -77,7 +77,7 @@ export default function TopBar({
           <button
             onClick={() => setMoreOpen((o) => !o)}
             title="More options"
-            className={`w-9 h-9 flex items-center justify-center rounded text-lg font-bold transition-colors ${
+            className={`w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded text-lg font-bold transition-colors ${
               moreOpen ? 'bg-[#424850] text-white' : 'bg-[#363b44] text-white/60 hover:bg-[#424850]'
             }`}
           >
@@ -182,7 +182,7 @@ export default function TopBar({
           onClick={onShare}
           disabled={uploadStatus === 'uploading' || inMode}
           title="Upload & share"
-          className="flex items-center gap-1.5 px-3 h-9 rounded text-xs font-medium bg-[#5865f2] text-white hover:bg-[#4752c4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 h-11 sm:h-9 rounded text-xs font-medium bg-[#5865f2] text-white hover:bg-[#4752c4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {uploadStatus === 'uploading'
             ? <Loader2 size={14} className="animate-spin" />
@@ -192,7 +192,7 @@ export default function TopBar({
         </button>
         <button
           onClick={onExport}
-          className="flex items-center gap-1.5 px-3 h-9 rounded text-xs font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
+          className="flex items-center gap-1.5 px-3 h-11 sm:h-9 rounded text-xs font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
         >
           <Upload size={14} /> Export
         </button>

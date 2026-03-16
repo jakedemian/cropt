@@ -127,18 +127,18 @@ export default function BottomToolbar({
   // While resizing, show only confirm / cancel
   if (canvasResizeMode) {
     return (
-      <footer className="flex items-center justify-center gap-3 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
+      <footer className="flex items-center justify-center gap-3 px-4 h-16 sm:h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
         <button
           onClick={onCancelResize}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
         >
-          <X size={14} /> Cancel
+          <X size={16} /> Cancel
         </button>
         <button
           onClick={onConfirmResize}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
         >
-          <Check size={14} /> Apply Resize
+          <Check size={16} /> Apply Resize
         </button>
       </footer>
     )
@@ -148,14 +148,14 @@ export default function BottomToolbar({
   if (isTextEditing) {
     return (
       <footer
-        className="flex items-center gap-3 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5 overflow-x-auto"
+        className="flex items-center gap-3 px-4 h-16 sm:h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5 overflow-x-auto"
         style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {/* Font selector */}
         <select
           value={editingNode?.fontFamily ?? 'Anton'}
           onChange={(e) => onFontChange(e.target.value)}
-          className="h-9 px-2 rounded text-sm bg-[#363b44] text-white border border-white/15 cursor-pointer shrink-0"
+          className="h-11 sm:h-9 px-2 rounded text-sm bg-[#363b44] text-white border border-white/15 cursor-pointer shrink-0"
           style={{ fontFamily: editingNode?.fontFamily ?? 'Anton' }}
           title="Font family"
         >
@@ -172,15 +172,15 @@ export default function BottomToolbar({
         <span className="hidden sm:block text-xs text-white/40 whitespace-nowrap">Cmd+Enter to confirm · Esc to cancel</span>
         <button
           onClick={onCancelTextEdit}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors shrink-0"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors shrink-0"
         >
-          <X size={14} /> Cancel
+          <X size={16} /> Cancel
         </button>
         <button
           onClick={onConfirmTextEdit}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors shrink-0"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors shrink-0"
         >
-          <Check size={14} /> Done
+          <Check size={16} /> Done
         </button>
       </footer>
     )
@@ -189,18 +189,18 @@ export default function BottomToolbar({
   // While trimming (per-image crop), show only confirm / cancel
   if (cropMode) {
     return (
-      <footer className="flex items-center justify-center gap-3 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
+      <footer className="flex items-center justify-center gap-3 px-4 h-16 sm:h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
         <button
           onClick={onCancelCrop}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
         >
-          <X size={14} /> Cancel
+          <X size={16} /> Cancel
         </button>
         <button
           onClick={onConfirmCrop}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
         >
-          <Check size={14} /> Apply Trim
+          <Check size={16} /> Apply Trim
         </button>
       </footer>
     )
@@ -209,18 +209,18 @@ export default function BottomToolbar({
   // While in canvas crop mode, show only confirm / cancel
   if (canvasCropMode) {
     return (
-      <footer className="flex items-center justify-center gap-3 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
+      <footer className="flex items-center justify-center gap-3 px-4 h-16 sm:h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
         <button
           onClick={onCancelCanvasCrop}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
         >
-          <X size={14} /> Cancel
+          <X size={16} /> Cancel
         </button>
         <button
           onClick={onConfirmCanvasCrop}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
         >
-          <Check size={14} /> Apply Crop
+          <Check size={16} /> Apply Crop
         </button>
       </footer>
     )
@@ -229,13 +229,13 @@ export default function BottomToolbar({
   // While in text placement mode, show instructions and cancel
   if (activeTool === 'text') {
     return (
-      <footer className="flex items-center justify-center gap-3 px-4 h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
+      <footer className="flex items-center justify-center gap-3 px-4 h-16 sm:h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
         <span className="text-sm text-white/60">Tap on the canvas to place text</span>
         <button
           onClick={onCancelTextPlace}
-          className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
+          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors"
         >
-          <X size={14} /> Cancel
+          <X size={16} /> Cancel
         </button>
       </footer>
     )
@@ -244,7 +244,7 @@ export default function BottomToolbar({
   // ── Normal toolbar ──────────────────────────────────────────────────────────
 
   return (
-    <footer className="flex h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
+    <footer className="flex h-16 sm:h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5">
 
       {/* Scrollable controls region + fade hints */}
       <div className="flex-1 relative min-w-0">
@@ -258,16 +258,16 @@ export default function BottomToolbar({
         )}
       <div
         ref={scrollRef}
-        className="flex items-center gap-2 px-4 h-14 overflow-x-auto"
+        className="flex items-center gap-2 px-4 h-16 sm:h-14 overflow-x-auto"
         style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         onScroll={updateFades}
       >
 
       <button
         onClick={onAddImage}
-        className="flex items-center gap-1 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+        className="flex items-center gap-1 px-3 py-3 sm:px-3 sm:py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
       >
-        <ImagePlus size={14} /> <span className="hidden sm:inline">Import</span>
+        <ImagePlus size={16} /> <span className="hidden sm:inline">Import</span>
       </button>
 
       <div className="w-px h-6 bg-white/10 mx-0.5 shrink-0" />
@@ -276,26 +276,26 @@ export default function BottomToolbar({
 
       {/* Mobile: chevron toggle + collapsible list */}
       <button
-        className="sm:hidden w-8 h-8 flex items-center justify-center rounded bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850] transition-colors shrink-0"
+        className="sm:hidden w-10 h-10 flex items-center justify-center rounded bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850] transition-colors shrink-0"
         onClick={() => setToolsExpanded((p) => !p)}
         title={toolsExpanded ? 'Hide tools' : 'Show tools'}
       >
-        {toolsExpanded ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+        {toolsExpanded ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
       </button>
 
       <div
         className="sm:hidden overflow-hidden transition-all duration-200 ease-out shrink-0"
         style={{ maxWidth: toolsExpanded ? '216px' : '0px' }}
       >
-        <div className="flex items-center bg-[#2d3139] rounded p-0.5 gap-0.5">
+        <div className="flex items-center bg-[#2d3139] rounded-full p-0.5 gap-0.5">
           {TOOLS.map((tool) => (
             <button
               key={tool.id}
               title={tool.title}
               onClick={() => onSetActiveTool(tool.id)}
-              className={`w-8 h-8 flex items-center justify-center rounded transition-colors shrink-0 ${activeTool === tool.id ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 ${activeTool === tool.id ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}
             >
-              <tool.Icon size={15} />
+              <tool.Icon size={18} />
             </button>
           ))}
         </div>
@@ -325,7 +325,7 @@ export default function BottomToolbar({
               type="color"
               value={brushColor}
               onChange={(e) => onBrushColorChange(e.target.value)}
-              className="w-8 h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
+              className="w-10 h-10 sm:w-8 sm:h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
               title="Brush colour"
               style={{ padding: '1px' }}
             />
@@ -342,11 +342,11 @@ export default function BottomToolbar({
                 setSizeOverlayOpen((o) => !o)
               }}
               title="Brush size"
-              className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+              className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
                 sizeOverlayOpen ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850]'
               }`}
             >
-              <Circle size={15} />
+              <Circle size={18} />
             </button>
 
             {sizeOverlayOpen && (
@@ -381,7 +381,7 @@ export default function BottomToolbar({
               step={1}
               value={brushSize}
               onChange={(e) => onBrushSizeChange(Number(e.target.value))}
-              className="w-24 accent-[#0fff95]"
+              className="w-28 sm:w-24 accent-[#0fff95]"
             />
             <span className="text-xs text-white/40 tabular-nums w-8">{brushSize}px</span>
           </div>
@@ -391,22 +391,22 @@ export default function BottomToolbar({
       {/* Layers toggle — hidden on desktop (handled by sidebar) */}
       <button
         onClick={onToggleLayerPanel}
-        className={`sm:hidden flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+        className={`sm:hidden flex items-center gap-1.5 px-3 py-3 rounded text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
           showLayerPanel
             ? 'bg-white text-[#24272f]'
             : 'bg-[#363b44] text-white hover:bg-[#424850]'
         }`}
       >
-        <Layers size={14} />
+        <Layers size={16} />
       </button>
 
       {/* Resize */}
       <button
         onClick={onEnterResize}
-        className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+        className="flex items-center gap-1.5 px-3 py-3 sm:px-3 sm:py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
         title="Resize canvas"
       >
-        <Maximize size={14} /> <span className="hidden sm:inline">Resize</span>
+        <Maximize size={16} /> <span className="hidden sm:inline">Resize</span>
       </button>
 
       {/* Crop — visible when a node or marquee selection exists */}
@@ -414,9 +414,9 @@ export default function BottomToolbar({
         <button
           onClick={onEnterCanvasCrop}
           title="Crop canvas to selection"
-          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+          className="flex items-center gap-1.5 px-3 py-3 sm:px-3 sm:py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
         >
-          <Crop size={14} /> <span className="hidden sm:inline">Crop</span>
+          <Crop size={16} /> <span className="hidden sm:inline">Crop</span>
         </button>
       )}
 
@@ -425,9 +425,9 @@ export default function BottomToolbar({
         <button
           onClick={onDeleteMarqueeArea}
           title="Erase pixels in selected area"
-          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+          className="flex items-center gap-1.5 px-3 py-3 sm:px-3 sm:py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
         >
-          <Eraser size={14} /> <span className="hidden sm:inline">Clear</span>
+          <Eraser size={16} /> <span className="hidden sm:inline">Clear</span>
         </button>
       )}
 
@@ -466,12 +466,12 @@ export default function BottomToolbar({
                 }
                 setBgOpen((o) => !o)
               }}
-              className={`flex items-center gap-1.5 px-2 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-3 py-3 rounded text-sm font-medium transition-colors whitespace-nowrap ${
                 bgOpen ? 'bg-white text-[#24272f]' : 'bg-[#363b44] text-white hover:bg-[#424850]'
               }`}
               title="Background color"
             >
-              <Palette size={14} />
+              <Palette size={16} />
             </button>
 
             {bgOpen && (
@@ -542,7 +542,7 @@ export default function BottomToolbar({
               value={selectedNode.opacity}
               onPointerDown={onOpacityStart}
               onChange={(e) => onOpacityChange(parseFloat(e.target.value))}
-              className="w-24 accent-[#0fff95]"
+              className="w-28 sm:w-24 accent-[#0fff95]"
             />
           </div>
         </>
@@ -598,13 +598,13 @@ export default function BottomToolbar({
           <div className="flex items-center gap-0.5 shrink-0">
             <button
               onClick={() => { onTextStyleStart(); onTextStyleChange({ fontSize: Math.max(8, selectedNode.fontSize - 4) }) }}
-              className="w-7 h-8 flex items-center justify-center rounded text-base bg-[#363b44] hover:bg-[#424850]"
+              className="w-9 h-10 sm:w-7 sm:h-8 flex items-center justify-center rounded text-base bg-[#363b44] hover:bg-[#424850]"
               title="Decrease font size"
             >−</button>
             <span className="text-xs text-white/60 w-12 text-center tabular-nums">{selectedNode.fontSize}px</span>
             <button
               onClick={() => { onTextStyleStart(); onTextStyleChange({ fontSize: Math.min(400, selectedNode.fontSize + 4) }) }}
-              className="w-7 h-8 flex items-center justify-center rounded text-base bg-[#363b44] hover:bg-[#424850]"
+              className="w-9 h-10 sm:w-7 sm:h-8 flex items-center justify-center rounded text-base bg-[#363b44] hover:bg-[#424850]"
               title="Increase font size"
             >+</button>
           </div>
@@ -615,7 +615,7 @@ export default function BottomToolbar({
             value={selectedNode.fill || '#ffffff'}
             onPointerDown={onTextStyleStart}
             onChange={(e) => onTextStyleChange({ fill: e.target.value })}
-            className="w-8 h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
             title="Text colour"
             style={{ padding: '1px' }}
           />
@@ -643,7 +643,7 @@ export default function BottomToolbar({
               value={selectedNode.stroke || '#000000'}
               onPointerDown={onTextStyleStart}
               onChange={(e) => onTextStyleChange({ stroke: e.target.value })}
-              className="w-8 h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
+              className="w-10 h-10 sm:w-8 sm:h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
               title="Outline colour"
               style={{ padding: '1px' }}
             />
@@ -666,7 +666,7 @@ export default function BottomToolbar({
               value={selectedNode.opacity}
               onPointerDown={onOpacityStart}
               onChange={(e) => onOpacityChange(parseFloat(e.target.value))}
-              className="w-24 accent-[#0fff95]"
+              className="w-28 sm:w-24 accent-[#0fff95]"
             />
           </div>
         </>
@@ -694,7 +694,7 @@ export default function BottomToolbar({
               value={selectedNode.opacity}
               onPointerDown={onOpacityStart}
               onChange={(e) => onOpacityChange(parseFloat(e.target.value))}
-              className="w-24 accent-[#0fff95]"
+              className="w-28 sm:w-24 accent-[#0fff95]"
             />
           </div>
         </>

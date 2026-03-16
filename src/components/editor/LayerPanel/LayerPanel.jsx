@@ -120,20 +120,20 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
       style={{ maxHeight: '40%' }}
     >
       {/* Header */}
-      <div className="flex items-center px-4 py-2 shrink-0 border-b border-white/10">
+      <div className="flex items-center px-4 py-3 sm:py-2 shrink-0 border-b border-white/10">
         <span className="text-sm font-semibold text-white flex-1">Layers</span>
         {onNewLayer && (
           <button
             onClick={onNewLayer}
             title="New raster layer"
-            className="p-1 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors mr-1"
+            className="p-2 sm:p-1 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors mr-1"
           >
             <Plus size={14} />
           </button>
         )}
         <button
           onClick={onClose}
-          className="text-white/40 hover:text-white p-1 rounded transition-colors"
+          className="text-white/40 hover:text-white p-2 sm:p-1 rounded transition-colors"
         >
           <X size={16} strokeWidth={2.5} />
         </button>

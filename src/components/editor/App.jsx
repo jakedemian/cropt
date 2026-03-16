@@ -474,21 +474,6 @@ export default function App() {
     }
   }, [selectedNodeId]) // eslint-disable-line react-hooks/exhaustive-deps -- intentional: only react to selection changes
 
-  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
-  // Placed after cropMode/textMode declarations to avoid temporal dead zone.
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === 'Escape' && drawMode) { setActiveTool('select'); return }
-      if (canvasResizeMode || cropMode || canvasCropMode || editingNodeId || drawMode) return
-      if (!(e.metaKey || e.ctrlKey)) return
-      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
-      if (e.key === 'z' &&  e.shiftKey) { e.preventDefault(); redo() }
-      if (e.key === 'y')                { e.preventDefault(); redo() }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [undo, redo, canvasResizeMode, cropMode, canvasCropMode, editingNodeId, drawMode])
-
   // ── Paste image from clipboard (Ctrl+V / Cmd+V) ─────────────────────────
   useEffect(() => {
     const handler = (e) => {
@@ -560,6 +545,32 @@ export default function App() {
     if (preResizeCanvasSize.current) setCanvasSize(preResizeCanvasSize.current)
     toggleResizeMode()
   }
+
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  // Placed after resize/crop handler declarations to avoid temporal dead zone.
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape' && drawMode) { setActiveTool('select'); return }
+      if (canvasResizeMode || cropMode || canvasCropMode || editingNodeId) return
+      // Tool hotkeys — no modifier keys
+      if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (e.key === 'v') { handleSetActiveTool('select');  return }
+        if (e.key === 'm') { handleSetActiveTool('marquee'); return }
+        if (e.key === 'b') { handleSetActiveTool('brush');   return }
+        if (e.key === 'e') { handleSetActiveTool('eraser');  return }
+        if (e.key === 't') { handleSetActiveTool('text');    return }
+        if (e.key === 'r') { handleEnterResize(); return }
+        if (e.key === 'c' && ((selectedNode?.type !== 'text' && selectedNode) || marqueeSelection)) { handleEnterCanvasCrop(); return }
+      }
+      if (drawMode) return
+      if (!(e.metaKey || e.ctrlKey)) return
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
+      if (e.key === 'z' &&  e.shiftKey) { e.preventDefault(); redo() }
+      if (e.key === 'y')                { e.preventDefault(); redo() }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [undo, redo, canvasResizeMode, cropMode, canvasCropMode, editingNodeId, drawMode, handleSetActiveTool, handleEnterResize, handleEnterCanvasCrop, selectedNode, marqueeSelection])
 
   // ── Text placement handlers ────────────────────────────────────────────────
 

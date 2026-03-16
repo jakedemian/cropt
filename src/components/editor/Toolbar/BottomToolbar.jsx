@@ -431,8 +431,8 @@ export default function BottomToolbar({
         <Maximize size={16} /> <span className="hidden sm:inline">Resize</span>
       </button>
 
-      {/* Crop — visible when a node or marquee selection exists */}
-      {(selectedNode || marqueeSelection) && (
+      {/* Crop — visible when a non-text node or marquee selection exists */}
+      {((selectedNode?.type !== 'text' && selectedNode) || marqueeSelection) && (
         <button
           onClick={onEnterCanvasCrop}
           title="Crop canvas to selection"

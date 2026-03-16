@@ -1,5 +1,11 @@
 # Cropt — Claude Code Context
 
+## Workflow Rules
+
+- **Never commit or push** unless the user has explicitly said to commit or push in that message. Completing an implementation does not imply permission to commit.
+
+---
+
 ## Project Overview
 
 Cropt is a **mobile-first Progressive Web App (PWA)** for creating and sharing memes. Users create memes in the editor, optionally upload them to Cropt, and share a link. The landing page is a public feed of hosted memes.

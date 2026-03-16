@@ -177,6 +177,7 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
                 onDragHandlePointerDown={(e) => handleDragHandlePointerDown(panelIndex, e)}
                 onOpacityStart={onOpacityStart}
                 onOpacityChange={onOpacityChange}
+                onDelete={() => onDelete(node.id)}
               />
             </div>
           )

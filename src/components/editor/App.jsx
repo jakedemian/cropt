@@ -237,6 +237,7 @@ export default function App() {
   const handleActivateTransform = useCallback((id) => {
     if (id !== null) selectNode(id)
     setTransformEnabled(id !== null)
+    if (id !== null) setActiveTool('select')
   }, [selectNode])
 
   // Invariant: if nodes exist, one must always be selected.

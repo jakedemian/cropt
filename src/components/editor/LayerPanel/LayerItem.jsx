@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Eye, EyeOff, Paintbrush, Move, Trash2 } from 'lucide-react'
+import { Eye, EyeOff, Paintbrush, MousePointer2, Trash2 } from 'lucide-react'
 
 export default function LayerItem({
   node,
@@ -179,7 +179,7 @@ export default function LayerItem({
           }`}
           title="Move / transform this layer"
         >
-          <Move size={16} />
+          <MousePointer2 size={16} />
         </button>
 
         {/* Visibility toggle */}

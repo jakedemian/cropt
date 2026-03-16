@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Check, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Wrench, ChevronLeft, ChevronRight, Circle } from 'lucide-react'
+import { X, Check, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Wrench, ChevronLeft, ChevronRight, Circle, MoveHorizontal } from 'lucide-react'
 
 const TOOLS = [
   { id: 'select',  title: 'Move',   Icon: MousePointer2 },
@@ -69,6 +69,7 @@ export default function BottomToolbar({
   brushSize,
   onBrushColorChange,
   onBrushSizeChange,
+  stageScale = 1,
 }) {
   // ── Hooks must be declared before any early returns (Rules of Hooks) ───────
   const [toolsExpanded, setToolsExpanded] = useState(false)
@@ -77,6 +78,7 @@ export default function BottomToolbar({
   const [sizeOverlayPos, setSizeOverlayPos] = useState({ left: 0, bottom: 0 })
   const sizeBtnRef = useRef(null)
   const sizeOverlayRef = useRef(null)
+  const scrubStateRef = useRef({ active: false, startX: 0, startSize: 20, didMove: false })
   const [showLeftFade,  setShowLeftFade]  = useState(false)
   const [showRightFade, setShowRightFade] = useState(false)
   const scrollRef = useRef(null)
@@ -111,6 +113,7 @@ export default function BottomToolbar({
   useEffect(() => {
     if (!sizeOverlayOpen || !isDrawing) return
     const handler = (e) => {
+      if (scrubStateRef.current.active) return
       if (sizeBtnRef.current?.contains(e.target) || sizeOverlayRef.current?.contains(e.target)) return
       setSizeOverlayOpen(false)
     }
@@ -326,43 +329,69 @@ export default function BottomToolbar({
             />
           )}
 
-          {/* Mobile: toggle button that opens a vertical size overlay */}
+          {/* Mobile: vertical scrub gesture to change brush size */}
           <div className="relative sm:hidden shrink-0" ref={sizeBtnRef}>
             <button
-              onClick={() => {
-                if (!sizeOverlayOpen && sizeBtnRef.current) {
+              title="Drag left/right to change brush size"
+              style={{ touchAction: 'none' }}
+              onPointerDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const s = scrubStateRef.current
+                s.active = true
+                s.startX = e.clientX
+                s.startSize = brushSize
+                s.didMove = false
+                if (sizeBtnRef.current) {
                   const rect = sizeBtnRef.current.getBoundingClientRect()
                   setSizeOverlayPos({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 8 })
                 }
-                setSizeOverlayOpen((o) => !o)
+                setSizeOverlayOpen(true)
+                e.currentTarget.setPointerCapture(e.pointerId)
               }}
-              title="Brush size"
-              className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
-                sizeOverlayOpen ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850]'
-              }`}
+              onPointerMove={(e) => {
+                const s = scrubStateRef.current
+                if (!s.active) return
+                if (Math.abs(e.clientX - s.startX) > 4) s.didMove = true
+                const delta = (e.clientX - s.startX) / 1.5
+                const newSize = Math.round(Math.min(120, Math.max(2, s.startSize + delta)))
+                onBrushSizeChange(newSize)
+              }}
+              onPointerUp={() => {
+                scrubStateRef.current.active = false
+                setSizeOverlayOpen(false)
+              }}
+              className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${sizeOverlayOpen ? 'bg-white text-[#24272f]' : 'bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850]'}`}
             >
-              <Circle size={18} />
+              {sizeOverlayOpen ? <MoveHorizontal size={18} /> : <Circle size={18} />}
             </button>
 
             {sizeOverlayOpen && (
-              <div
-                ref={sizeOverlayRef}
-                className="fixed bg-[#2d3139] border border-white/10 rounded-xl shadow-2xl flex flex-col items-center gap-2 px-3 py-4"
-                style={{ left: sizeOverlayPos.left, bottom: sizeOverlayPos.bottom, transform: 'translateX(-50%)', zIndex: 50 }}
-              >
-                <span className="text-xs text-white/40 tabular-nums">{brushSize}px</span>
-                <input
-                  type="range"
-                  min={2}
-                  max={120}
-                  step={1}
-                  value={brushSize}
-                  onChange={(e) => onBrushSizeChange(Number(e.target.value))}
-                  className="accent-[#0fff95]"
-                  style={{ writingMode: 'vertical-lr', direction: 'rtl', width: '36px', height: '120px', cursor: 'pointer' }}
-                />
-                <span className="text-xs text-white/40 tabular-nums">2px</span>
-              </div>
+              <>
+                {/* Bar popover — fixed size */}
+                <div
+                  ref={sizeOverlayRef}
+                  className="fixed bg-[#2d3139] border border-white/10 rounded-xl shadow-2xl flex flex-row items-center gap-2 px-3 py-3 pointer-events-none"
+                  style={{ left: sizeOverlayPos.left, bottom: sizeOverlayPos.bottom, transform: 'translateX(-50%)', zIndex: 50 }}
+                >
+                  <span className="text-xs text-white/40 tabular-nums">2px</span>
+                  <div className="w-28 h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#0fff95]/60 rounded-full" style={{ width: `${((brushSize - 2) / 118) * 100}%` }} />
+                  </div>
+                  <span className="text-xs text-white/40 tabular-nums w-10 text-right">{brushSize}px</span>
+                </div>
+
+                {/* Circle preview — floats above the bar, grows freely */}
+                <div
+                  className="fixed pointer-events-none flex items-end justify-center"
+                  style={{ left: sizeOverlayPos.left, bottom: sizeOverlayPos.bottom + 56, transform: 'translateX(-50%)', zIndex: 50 }}
+                >
+                  <div
+                    className="rounded-full bg-white/15 border border-white/40"
+                    style={{ width: brushSize * stageScale, height: brushSize * stageScale }}
+                  />
+                </div>
+              </>
             )}
           </div>
 

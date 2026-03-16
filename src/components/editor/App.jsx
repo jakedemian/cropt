@@ -880,6 +880,7 @@ export default function App() {
         brushSize={brushSize}
         onBrushColorChange={setBrushColor}
         onBrushSizeChange={setBrushSize}
+        stageScale={stageViewport.scale}
       />
 
       <input

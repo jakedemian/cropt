@@ -561,7 +561,7 @@ export default function BottomToolbar({
               onTextStyleStart()
               onTextStyleChange({ fontStyle: newStyle })
             }}
-            className={`w-11 py-2 rounded text-sm font-bold transition-colors whitespace-nowrap ${
+            className={`px-4 py-2 flex items-center justify-center rounded text-sm font-bold transition-colors whitespace-nowrap shrink-0 ${
               isBold ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#363b44] hover:bg-[#424850]'
             }`}
             title="Bold"
@@ -577,7 +577,7 @@ export default function BottomToolbar({
               onTextStyleStart()
               onTextStyleChange({ fontStyle: newStyle })
             }}
-            className={`w-11 py-2 rounded text-sm italic transition-colors whitespace-nowrap ${
+            className={`px-4 py-2 flex items-center justify-center rounded text-sm italic transition-colors whitespace-nowrap shrink-0 ${
               isItalic ? 'bg-[#0fff95] text-[#24272f]' : 'bg-[#363b44] hover:bg-[#424850]'
             }`}
             title="Italic"

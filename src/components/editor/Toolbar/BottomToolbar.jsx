@@ -611,6 +611,9 @@ export default function BottomToolbar({
             style={{ padding: '1px' }}
           />
 
+          {/* Divider — separates text style from stroke/outline controls */}
+          <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
+
           {/* Stroke toggle + colour */}
           <button
             onClick={() => {

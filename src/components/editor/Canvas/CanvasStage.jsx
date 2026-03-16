@@ -812,6 +812,24 @@ export default function CanvasStage({
   const getCenter = (p1, p2) => ({ x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 })
   const getDist = (p1, p2) => Math.hypot(p2.x - p1.x, p2.y - p1.y)
 
+  // When a second finger arrives during a single-finger pan, Konva's drag and
+  // the pinch handler both write to the stage position on the same frame,
+  // causing snap jumps. Stop Konva's drag immediately and sync viewport state
+  // so the pinch handler has clean, uncontested ownership going forward.
+  const handleTouchStart = useCallback(
+    (e) => {
+      if (e.evt.touches.length < 2) return
+      const stage = stageRef.current
+      if (!stage) return
+      stage.stopDrag()
+      const pos = stage.getAbsolutePosition()
+      setStageViewport((prev) => ({ ...prev, x: pos.x, y: pos.y }))
+      lastDist.current = null
+      lastCenter.current = null
+    },
+    [stageRef, setStageViewport]
+  )
+
   const handleTouchMove = useCallback(
     (e) => {
       e.evt.preventDefault()
@@ -947,6 +965,7 @@ export default function CanvasStage({
             onDragMove={handleStageDragMove}
             onDragEnd={handleStageDragEnd}
             onWheel={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleWheel}
+            onTouchStart={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleTouchStart}
             onTouchMove={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleTouchMove}
             onTouchEnd={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleTouchEnd}
             onClick={handleStageClick}

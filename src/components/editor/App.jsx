@@ -755,6 +755,7 @@ export default function App() {
                 onClose={() => setShowLayerPanel(false)}
                 onOpacityStart={() => pushHistory()}
                 onOpacityChange={(id, v) => updateNode(id, { opacity: v })}
+                onDelete={(id) => { pushHistory(); removeNode(id) }}
               />
             </div>
           )}
@@ -807,6 +808,7 @@ export default function App() {
             onNewLayer={handleNewRasterLayer}
             onOpacityStart={() => pushHistory()}
             onOpacityChange={(id, v) => updateNode(id, { opacity: v })}
+            onDelete={(id) => { pushHistory(); removeNode(id) }}
             historyEntries={historyEntries}
             onRestoreDocument={handleRestoreDocument}
           />
@@ -824,7 +826,6 @@ export default function App() {
         showLayerPanel={showLayerPanel}
         onAddImage={openPicker}
         onFlip={() => { if (selectedNode) { pushHistory(); updateNode(selectedNode.id, { flipX: !selectedNode.flipX }) } }}
-        onDelete={() => { if (selectedNode) { pushHistory(); removeNode(selectedNode.id) } }}
         onSetBackground={(bg) => { pushHistory(); setCanvasBackground(bg) }}
         onToggleLayerPanel={() => setShowLayerPanel((p) => !p)}
         marqueeSelection={marqueeSelection}

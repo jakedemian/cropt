@@ -13,6 +13,7 @@ export default function DesktopSidebar({
   onNewLayer,
   onOpacityStart,
   onOpacityChange,
+  onDelete,
   historyEntries,
   onRestoreDocument,
 }) {
@@ -35,6 +36,7 @@ export default function DesktopSidebar({
           onNewLayer={onNewLayer}
           onOpacityStart={onOpacityStart}
           onOpacityChange={onOpacityChange}
+          onDelete={onDelete}
         />
       </div>
 

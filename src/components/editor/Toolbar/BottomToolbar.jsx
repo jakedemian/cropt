@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Trash2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, ChevronRight, ChevronDown, Circle } from 'lucide-react'
+import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, ChevronRight, ChevronDown, Circle } from 'lucide-react'
 
 const TOOLS = [
   { id: 'select',  title: 'Move',   Icon: MousePointer2 },
@@ -39,7 +39,6 @@ export default function BottomToolbar({
   showLayerPanel,
   onAddImage,
   onFlip,
-  onDelete,
   onSetBackground,
   onToggleLayerPanel,
   marqueeSelection,
@@ -523,12 +522,6 @@ export default function BottomToolbar({
             <FlipHorizontal2 size={14} /> Flip
           </button>
 
-          <button
-            onClick={onDelete}
-            className="flex items-center gap-1.5 px-3 py-2 rounded text-sm bg-red-700 hover:bg-red-600 transition-colors whitespace-nowrap"
-          >
-            <Trash2 size={14} /> Delete
-          </button>
         </>
       )}
 
@@ -633,26 +626,6 @@ export default function BottomToolbar({
             />
           )}
 
-          <button
-            onClick={onDelete}
-            className="flex items-center gap-1.5 px-3 py-2 rounded text-sm bg-red-700 hover:bg-red-600 transition-colors whitespace-nowrap"
-          >
-            <Trash2 size={14} /> Delete
-          </button>
-        </>
-      )}
-
-      {/* Per-raster-layer controls */}
-      {activeTool === 'select' && selectedNode?.type === 'raster' && (
-        <>
-          <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
-
-          <button
-            onClick={onDelete}
-            className="flex items-center gap-1.5 px-3 py-2 rounded text-sm bg-red-700 hover:bg-red-600 transition-colors whitespace-nowrap"
-          >
-            <Trash2 size={14} /> Delete
-          </button>
         </>
       )}
 

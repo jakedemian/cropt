@@ -35,11 +35,8 @@ export default function TopBar({
   return (
     <header className="grid grid-cols-[1fr_auto_1fr] items-center px-3 h-14 sm:h-12 bg-[#24272f] text-white shrink-0">
 
-      {/* ── Left: logo ── */}
-      <div className="flex items-center gap-1.5">
-        <img src="/icons/cropt-logo.png" alt="Cropt" className="w-6 h-6" />
-        <span className="font-semibold text-sm tracking-wide">Cropt</span>
-      </div>
+      {/* ── Left: (empty — keeps undo/redo centered) ── */}
+      <div />
 
       {/* ── Center: undo/redo ── */}
       <div className="flex items-center gap-1.5">

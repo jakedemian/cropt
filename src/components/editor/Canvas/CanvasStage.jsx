@@ -13,6 +13,12 @@ import CanvasCropHandles from './CanvasCropHandles'
 const MIN_SCALE = 0.1
 const MAX_SCALE = 8
 
+// Watermark tile constants — tweak these to adjust the stage background pattern.
+const WATERMARK_TILE_W  = 280   // px — tile width; smaller = denser horizontal repeat
+const WATERMARK_TILE_H  = 140   // px — tile height; smaller = denser vertical repeat
+const WATERMARK_ANGLE   = 15    // degrees of clockwise rotation
+const WATERMARK_OPACITY = 0.02  // 0–1; keep low for subtlety
+
 // Offscreen canvas used as a repeating fill pattern for the transparent background.
 // Created once at module load — no SSR concern since this is a client-only app.
 const checkerPatternCanvas = (() => {
@@ -85,6 +91,48 @@ export default function CanvasStage({
   const [imageLoadCount, setImageLoadCount] = useState(0)
   const lastCenter = useRef(null)
   const lastDist = useRef(null)
+
+  // ── Stage background watermark ─────────────────────────────────────────────
+  const [watermarkDataUrl, setWatermarkDataUrl] = useState(null)
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => {
+      // Tile is double-height to accommodate two staggered rows.
+      const c = document.createElement('canvas')
+      c.width  = WATERMARK_TILE_W
+      c.height = WATERMARK_TILE_H * 2
+      const ctx = c.getContext('2d')
+
+      const logoSize = 48
+      ctx.font = 'bold 40px Arial, sans-serif'
+      const textW = ctx.measureText('cropt').width
+      const totalW = logoSize + 5 + textW
+      // Negative angle = counter-clockwise = text slants up-to-the-right
+      const angleRad = (-WATERMARK_ANGLE * Math.PI) / 180
+
+      const draw = (cx, cy) => {
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(angleRad)
+        ctx.globalAlpha = WATERMARK_OPACITY
+        ctx.fillStyle = '#ffffff'
+        ctx.drawImage(img, -totalW / 2, -logoSize / 2, logoSize, logoSize)
+        ctx.textBaseline = 'middle'
+        ctx.fillText('cropt', -totalW / 2 + logoSize + 5, 0)
+        ctx.restore()
+      }
+
+      // Row 1 — centered horizontally, top half of tile
+      draw(WATERMARK_TILE_W / 2, WATERMARK_TILE_H / 2)
+      // Row 2 — offset 50% horizontally, bottom half of tile.
+      // Drawn at both x=0 and x=TILE_W so the split instance tiles seamlessly.
+      draw(0, WATERMARK_TILE_H * 3 / 2)
+      draw(WATERMARK_TILE_W, WATERMARK_TILE_H * 3 / 2)
+
+      setWatermarkDataUrl(c.toDataURL())
+    }
+    img.src = '/icons/cropt-logo.png'
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs once on mount
 
   // ── Raster layer canvas management ────────────────────────────────────────
   // rasterCanvases is React state so it can be accessed safely during render.
@@ -704,7 +752,17 @@ export default function CanvasStage({
   const editingNode = editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null
 
   return (
-    <div ref={containerRef} className="relative w-full h-full bg-[#2d3139] overflow-hidden">
+    <div
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden"
+      style={{
+        backgroundColor: '#2d3139',
+        ...(watermarkDataUrl && {
+          backgroundImage: `url(${watermarkDataUrl})`,
+          backgroundRepeat: 'repeat',
+        }),
+      }}
+    >
       {containerSize.width > 0 && (
         <>
           <Stage

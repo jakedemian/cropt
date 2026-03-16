@@ -11,7 +11,9 @@
       "mcp__vercel__list_deployments",
       "mcp__vercel__get_project",
       "Bash(aws ce:*)",
-      "mcp__cloudflare__search"
+      "mcp__cloudflare__search",
+      "Bash(cd:*)",
+      "Bash(gh issue:*)"
     ]
   }
 }

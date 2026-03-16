@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Check, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Wrench, ChevronLeft, ChevronRight, Circle, MoveHorizontal } from 'lucide-react'
+import { X, Check, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Wrench, ChevronLeft, ChevronRight, Circle, MoveHorizontal, Minus } from 'lucide-react'
 
 const TOOLS = [
   { id: 'select',  title: 'Move',   Icon: MousePointer2 },
@@ -78,6 +78,11 @@ export default function BottomToolbar({
   const sizeBtnRef = useRef(null)
   const sizeOverlayRef = useRef(null)
   const scrubStateRef = useRef({ active: false, startX: 0, startSize: 20, didMove: false })
+  const [strokeSizeOverlayOpen, setStrokeSizeOverlayOpen] = useState(false)
+  const [strokeSizeOverlayPos, setStrokeSizeOverlayPos] = useState({ left: 0, bottom: 0 })
+  const strokeSizeBtnRef = useRef(null)
+  const strokeSizeOverlayRef = useRef(null)
+  const strokeScrubStateRef = useRef({ active: false, startX: 0, startSize: 2, didMove: false })
   const [showLeftFade,  setShowLeftFade]  = useState(false)
   const [showRightFade, setShowRightFade] = useState(false)
   const scrollRef = useRef(null)
@@ -119,6 +124,17 @@ export default function BottomToolbar({
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [sizeOverlayOpen, isDrawing])
+
+  useEffect(() => {
+    if (!strokeSizeOverlayOpen) return
+    const handler = (e) => {
+      if (strokeScrubStateRef.current.active) return
+      if (strokeSizeBtnRef.current?.contains(e.target) || strokeSizeOverlayRef.current?.contains(e.target)) return
+      setStrokeSizeOverlayOpen(false)
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [strokeSizeOverlayOpen])
 
   const isBold = selectedNode?.fontStyle?.includes('bold')
   const isItalic = selectedNode?.fontStyle?.includes('italic')
@@ -301,14 +317,18 @@ export default function BottomToolbar({
       {isDrawing && (
         <>
           {activeTool === 'brush' && (
-            <input
-              type="color"
-              value={brushColor}
-              onChange={(e) => onBrushColorChange(e.target.value)}
-              className="w-10 h-10 sm:w-8 sm:h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
-              title="Brush colour"
-              style={{ padding: '1px' }}
-            />
+            <div className="relative w-8 h-8 sm:w-6 sm:h-6 shrink-0" title="Brush colour">
+              <input
+                type="color"
+                value={brushColor}
+                onChange={(e) => onBrushColorChange(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <div
+                className="w-full h-full rounded-full border border-white/20 pointer-events-none"
+                style={{ background: brushColor }}
+              />
+            </div>
           )}
 
           {/* Mobile: vertical scrub gesture to change brush size */}
@@ -601,15 +621,19 @@ export default function BottomToolbar({
           </div>
 
           {/* Text colour */}
-          <input
-            type="color"
-            value={selectedNode.fill || '#ffffff'}
-            onPointerDown={onTextStyleStart}
-            onChange={(e) => onTextStyleChange({ fill: e.target.value })}
-            className="w-10 h-10 sm:w-8 sm:h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
-            title="Text colour"
-            style={{ padding: '1px' }}
-          />
+          <div className="relative w-8 h-8 sm:w-6 sm:h-6 shrink-0" title="Text colour">
+            <input
+              type="color"
+              value={selectedNode.fill || '#ffffff'}
+              onPointerDown={onTextStyleStart}
+              onChange={(e) => onTextStyleChange({ fill: e.target.value })}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div
+              className="w-full h-full rounded-full border border-white/20 pointer-events-none"
+              style={{ background: selectedNode.fill || '#ffffff' }}
+            />
+          </div>
 
           {/* Divider — separates text style from stroke/outline controls */}
           <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
@@ -619,7 +643,7 @@ export default function BottomToolbar({
             onClick={() => {
               const hasStroke = (selectedNode.strokeWidth ?? 0) > 0
               onTextStyleStart()
-              onTextStyleChange({ strokeWidth: hasStroke ? 0 : 2 })
+              onTextStyleChange({ strokeWidth: hasStroke ? 0 : 6 })
             }}
             className={`px-3 py-2 rounded text-sm transition-colors whitespace-nowrap ${
               (selectedNode.strokeWidth ?? 0) > 0
@@ -632,15 +656,106 @@ export default function BottomToolbar({
           </button>
 
           {(selectedNode.strokeWidth ?? 0) > 0 && (
-            <input
-              type="color"
-              value={selectedNode.stroke || '#000000'}
-              onPointerDown={onTextStyleStart}
-              onChange={(e) => onTextStyleChange({ stroke: e.target.value })}
-              className="w-10 h-10 sm:w-8 sm:h-8 rounded cursor-pointer bg-[#363b44] border-0 shrink-0"
-              title="Outline colour"
-              style={{ padding: '1px' }}
-            />
+            <>
+              <div className="relative w-8 h-8 sm:w-6 sm:h-6 shrink-0" title="Outline colour">
+                <input
+                  type="color"
+                  value={selectedNode.stroke || '#000000'}
+                  onPointerDown={onTextStyleStart}
+                  onChange={(e) => onTextStyleChange({ stroke: e.target.value })}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div
+                  className="w-full h-full rounded-full border border-white/20 pointer-events-none"
+                  style={{ background: selectedNode.stroke || '#000000' }}
+                />
+              </div>
+
+              {/* Mobile: scrub gesture to change stroke width */}
+              <div className="relative sm:hidden shrink-0" ref={strokeSizeBtnRef}>
+                <button
+                  title="Drag left/right to change outline width"
+                  style={{ touchAction: 'none' }}
+                  onPointerDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const s = strokeScrubStateRef.current
+                    s.active = true
+                    s.startX = e.clientX
+                    s.startSize = selectedNode.strokeWidth ?? 2
+                    s.didMove = false
+                    onTextStyleStart()
+                    if (strokeSizeBtnRef.current) {
+                      const rect = strokeSizeBtnRef.current.getBoundingClientRect()
+                      setStrokeSizeOverlayPos({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 8 })
+                    }
+                    setStrokeSizeOverlayOpen(true)
+                    e.currentTarget.setPointerCapture(e.pointerId)
+                  }}
+                  onPointerMove={(e) => {
+                    const s = strokeScrubStateRef.current
+                    if (!s.active) return
+                    if (Math.abs(e.clientX - s.startX) > 4) s.didMove = true
+                    const delta = (e.clientX - s.startX) / 2
+                    const newSize = Math.round(Math.min(30, Math.max(1, s.startSize + delta)))
+                    onTextStyleChange({ strokeWidth: newSize })
+                  }}
+                  onPointerUp={() => {
+                    strokeScrubStateRef.current.active = false
+                    setStrokeSizeOverlayOpen(false)
+                  }}
+                  className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
+                    strokeSizeOverlayOpen ? 'bg-white text-[#24272f]' : 'bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850]'
+                  }`}
+                >
+                  {strokeSizeOverlayOpen ? <MoveHorizontal size={18} /> : <Minus size={18} />}
+                </button>
+
+                {strokeSizeOverlayOpen && (
+                  <>
+                    {/* Bar popover */}
+                    <div
+                      ref={strokeSizeOverlayRef}
+                      className="fixed bg-[#2d3139] border border-white/10 rounded-xl shadow-2xl flex flex-row items-center gap-2 px-3 py-3 pointer-events-none"
+                      style={{ left: strokeSizeOverlayPos.left, bottom: strokeSizeOverlayPos.bottom, transform: 'translateX(-50%)', zIndex: 50 }}
+                    >
+                      <span className="text-xs text-white/40 tabular-nums">1px</span>
+                      <div className="w-28 h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#0fff95]/60 rounded-full" style={{ width: `${((selectedNode.strokeWidth - 1) / 29) * 100}%` }} />
+                      </div>
+                      <span className="text-xs text-white/40 tabular-nums w-10 text-right">{selectedNode.strokeWidth}px</span>
+                    </div>
+
+                    {/* Line preview — floats above the bar */}
+                    <div
+                      className="fixed pointer-events-none flex items-end justify-center"
+                      style={{ left: strokeSizeOverlayPos.left, bottom: strokeSizeOverlayPos.bottom + 56, transform: 'translateX(-50%)', zIndex: 50 }}
+                    >
+                      <div
+                        className="bg-white/70 rounded-full"
+                        style={{ width: 48, height: Math.max(1, Math.round(selectedNode.strokeWidth / 2)) }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Desktop: inline range slider */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <span className="text-xs text-white/40 whitespace-nowrap">Thickness</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={30}
+                  step={1}
+                  value={selectedNode.strokeWidth ?? 2}
+                  onPointerDown={onTextStyleStart}
+                  onChange={(e) => onTextStyleChange({ strokeWidth: Number(e.target.value) })}
+                  className="w-20 accent-[#0fff95]"
+                />
+                <span className="text-xs text-white/40 tabular-nums w-8">{selectedNode.strokeWidth}px</span>
+              </div>
+            </>
           )}
 
         </>

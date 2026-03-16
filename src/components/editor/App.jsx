@@ -591,7 +591,7 @@ export default function App() {
       fontStyle: 'normal',
       fill: '#ffffff',
       stroke: '#000000',
-      strokeWidth: 2,
+      strokeWidth: 6,
       align: 'left',
       rotation: 0,
       scaleX: 1,

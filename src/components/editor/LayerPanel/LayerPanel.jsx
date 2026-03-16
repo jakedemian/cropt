@@ -4,7 +4,7 @@ import LayerItem from './LayerItem'
 
 // embedded=true: renders as a flex column for use inside the desktop sidebar.
 // embedded=false (default): renders as an absolute bottom overlay for mobile.
-export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, onSelectNode, onActivateTransform, onToggleVisible, onReorder, onNewLayer, onClose, onOpacityStart, onOpacityChange, onDelete, embedded = false }) {
+export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, onSelectNode, onActivateTransform, onToggleVisible, onReorder, onNewLayer, onClose, onOpacityStart, onOpacityChange, onDelete, onRasterizeText, editingNodeId, embedded = false }) {
   const [dragIndex, setDragIndex] = useState(null)   // panel-index being dragged
   const [dropIndex, setDropIndex] = useState(null)   // 0..n insertion point
   const listRef = useRef(null)
@@ -108,6 +108,8 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
                   onOpacityStart={onOpacityStart}
                   onOpacityChange={onOpacityChange}
                   onDelete={() => onDelete(node.id)}
+                  onRasterizeText={() => onRasterizeText?.(node.id)}
+                  isEditing={editingNodeId === node.id}
                 />
               </div>
             )
@@ -178,6 +180,8 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
                 onOpacityStart={onOpacityStart}
                 onOpacityChange={onOpacityChange}
                 onDelete={() => onDelete(node.id)}
+                onRasterizeText={() => onRasterizeText?.(node.id)}
+                isEditing={editingNodeId === node.id}
               />
             </div>
           )

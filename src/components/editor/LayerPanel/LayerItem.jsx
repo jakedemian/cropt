@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Eye, EyeOff, Paintbrush, MousePointer2, Trash2 } from 'lucide-react'
+import { Eye, EyeOff, Paintbrush, MousePointer2, Trash2, Layers, Check } from 'lucide-react'
 
 export default function LayerItem({
   node,
@@ -16,7 +16,10 @@ export default function LayerItem({
   onOpacityStart,
   onOpacityChange,
   onDelete,
+  onRasterizeText,
+  isEditing,
 }) {
+  const [rasterized, setRasterized] = useState(false)
   const [opacityPopoverOpen, setOpacityPopoverOpen] = useState(false)
   const [popoverPos, setPopoverPos] = useState({ left: 0, bottom: 0 })
   const opacityBtnRef = useRef(null)
@@ -168,6 +171,27 @@ export default function LayerItem({
             </div>
           )}
         </div>
+
+        {/* Rasterize button — text nodes only */}
+        {node.type === 'text' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onRasterizeText?.()
+              setRasterized(true)
+              setTimeout(() => setRasterized(false), 1500)
+            }}
+            disabled={isEditing}
+            className={`shrink-0 p-2.5 sm:p-1.5 rounded transition-colors ${
+              rasterized
+                ? 'text-[#0fff95]'
+                : 'text-white/40 hover:text-white hover:bg-white/10'
+            } disabled:opacity-30 disabled:cursor-not-allowed`}
+            title="Rasterize text layer"
+          >
+            {rasterized ? <Check size={16} /> : <Layers size={16} />}
+          </button>
+        )}
 
         {/* Transform / move button — activates transformer for this layer */}
         <button

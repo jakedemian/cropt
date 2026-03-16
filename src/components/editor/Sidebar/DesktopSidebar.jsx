@@ -15,6 +15,8 @@ export default function DesktopSidebar({
   onOpacityStart,
   onOpacityChange,
   onDelete,
+  onRasterizeText,
+  editingNodeId,
   historyEntries,
   onRestoreDocument,
 }) {
@@ -38,6 +40,8 @@ export default function DesktopSidebar({
           onOpacityStart={onOpacityStart}
           onOpacityChange={onOpacityChange}
           onDelete={onDelete}
+          onRasterizeText={onRasterizeText}
+          editingNodeId={editingNodeId}
         />
       </div>
 

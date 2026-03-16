@@ -426,6 +426,81 @@ export default function App() {
     })
   }, [pushHistory, addNode, nodes, canvasSize])
 
+  // ── Rasterize text node ────────────────────────────────────────────────────
+  const handleRasterizeTextNode = useCallback((nodeId) => {
+    if (editingNodeId === nodeId) return
+    const node = nodes.find((n) => n.id === nodeId)
+    if (!node || node.type !== 'text') return
+
+    const stage = stageRef.current
+    if (!stage) return
+    const konvaText = stage.findOne('#' + nodeId)
+    if (!konvaText) return
+
+    // Get the axis-aligned bounding box in canvas coordinates (includes stroke extent).
+    // getClientRect({ relativeTo: layer }) gives canvas-space coords regardless of stage viewport.
+    const nodesLayer = konvaText.getLayer()
+    const rawRect = konvaText.getClientRect({ relativeTo: nodesLayer })
+    const rect = {
+      x: Math.floor(rawRect.x),
+      y: Math.floor(rawRect.y),
+      width: Math.ceil(rawRect.width),
+      height: Math.ceil(rawRect.height),
+    }
+    if (rect.width < 1 || rect.height < 1) return
+
+    // Capture using the same pattern as useExport: reset stage transform so
+    // canvas px === screen px, hide everything except the target node, render.
+    const container = stage.container()
+    container.style.visibility = 'hidden'
+
+    const origX = stage.x(), origY = stage.y()
+    const origScaleX = stage.scaleX(), origScaleY = stage.scaleY()
+    stage.x(0); stage.y(0); stage.scaleX(1); stage.scaleY(1)
+
+    // Hide all nodes in the nodes layer except the target
+    const children = nodesLayer.getChildren()
+    const visMap = {}
+    children.forEach((child) => {
+      visMap[child.id()] = child.visible()
+      child.visible(child.id() === nodeId)
+    })
+
+    // Capture just the text's bounding box from the nodes layer (transparent background)
+    const src = nodesLayer.toDataURL({
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      pixelRatio: 1,
+    })
+
+    // Restore
+    children.forEach((child) => child.visible(visMap[child.id()] ?? true))
+    stage.x(origX); stage.y(origY); stage.scaleX(origScaleX); stage.scaleY(origScaleY)
+    stage.batchDraw()
+    container.style.visibility = ''
+
+    pushHistory()
+
+    const imageNode = {
+      id: node.id,
+      type: 'image',
+      name: node.name || 'Text',
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      src,
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0,
+      opacity: node.opacity ?? 1,
+      visible: node.visible ?? true,
+    }
+    replaceNodes(nodes.map((n) => (n.id === nodeId ? imageNode : n)))
+  }, [editingNodeId, nodes, pushHistory, replaceNodes, stageRef])
+
   // ── Unified tool switching ─────────────────────────────────────────────────
   const handleSetActiveTool = useCallback((tool) => {
     if (tool === 'brush' || tool === 'eraser') {
@@ -790,6 +865,8 @@ export default function App() {
                 onOpacityStart={() => pushHistory()}
                 onOpacityChange={(id, v) => updateNode(id, { opacity: v })}
                 onDelete={(id) => { pushHistory(); removeNode(id) }}
+                onRasterizeText={handleRasterizeTextNode}
+                editingNodeId={editingNodeId}
               />
             </div>
           )}
@@ -843,6 +920,8 @@ export default function App() {
             onOpacityStart={() => pushHistory()}
             onOpacityChange={(id, v) => updateNode(id, { opacity: v })}
             onDelete={(id) => { pushHistory(); removeNode(id) }}
+            onRasterizeText={handleRasterizeTextNode}
+            editingNodeId={editingNodeId}
             historyEntries={historyEntries}
             onRestoreDocument={handleRestoreDocument}
           />

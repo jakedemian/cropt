@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { X, Clock, Check } from 'lucide-react'
+import { X, Clock, Check, Undo2, Redo2 } from 'lucide-react'
 import { version } from '../../../package.json'
 import { useCanvasState } from './hooks/useCanvasState'
 import { useImageImport } from './hooks/useImageImport'
@@ -651,7 +651,10 @@ export default function App() {
     <div className="flex flex-col w-full h-full overflow-hidden bg-[#24272f]">
       <TopBar
         canvasResizeMode={canvasResizeMode}
+        cropMode={cropMode}
+        canvasCropMode={canvasCropMode}
         canvasSize={committedCanvasSize}
+        onAddImage={openPicker}
         onNew={handleNewDocument}
         onExport={exportCanvas}
         onCopy={copyCanvas}
@@ -677,6 +680,29 @@ export default function App() {
 
         {/* Canvas + mobile overlays */}
         <div className="flex-1 overflow-hidden relative">
+
+          {/* Mobile floating undo/redo */}
+          <div className="sm:hidden absolute top-3 inset-x-0 flex justify-center z-20 pointer-events-none">
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <button
+                onClick={undo}
+                disabled={!canUndo || canvasResizeMode}
+                title="Undo (Cmd+Z)"
+                className="w-11 h-11 flex items-center justify-center rounded-full bg-[#363b44]/90 backdrop-blur-sm text-white shadow-lg transition-colors hover:bg-[#424850]/90 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Undo2 size={18} />
+              </button>
+              <button
+                onClick={redo}
+                disabled={!canRedo || canvasResizeMode}
+                title="Redo (Cmd+Shift+Z)"
+                className="w-11 h-11 flex items-center justify-center rounded-full bg-[#363b44]/90 backdrop-blur-sm text-white shadow-lg transition-colors hover:bg-[#424850]/90 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Redo2 size={18} />
+              </button>
+            </div>
+          </div>
+
           <CanvasStage
             stageRef={stageRef}
             canvasSize={canvasSize}
@@ -825,7 +851,6 @@ export default function App() {
         canvasSize={canvasSize}
         canvasBackground={canvasBackground}
         showLayerPanel={showLayerPanel}
-        onAddImage={openPicker}
         onFlip={() => { if (selectedNode) { pushHistory(); updateNode(selectedNode.id, { flipX: !selectedNode.flipX }) } }}
         onSetBackground={(bg) => { pushHistory(); setCanvasBackground(bg) }}
         onToggleLayerPanel={() => setShowLayerPanel((p) => !p)}

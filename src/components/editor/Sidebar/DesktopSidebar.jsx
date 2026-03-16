@@ -1,3 +1,4 @@
+import { Clock } from 'lucide-react'
 import LayerPanel from '../LayerPanel/LayerPanel'
 import HistoryPanel from './HistoryPanel'
 
@@ -42,6 +43,11 @@ export default function DesktopSidebar({
 
       {/* History section — takes remaining space */}
       <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 shrink-0">
+          <Clock size={13} className="text-white/40" />
+          <span className="text-sm font-semibold text-white">History</span>
+          <span className="text-xs text-white/30 ml-auto">{historyEntries.length}/5</span>
+        </div>
         <HistoryPanel
           entries={historyEntries}
           onRestore={onRestoreDocument}

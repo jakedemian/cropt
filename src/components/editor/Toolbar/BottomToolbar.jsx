@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Check, ImagePlus, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Wrench, ChevronLeft, ChevronRight, Circle } from 'lucide-react'
+import { X, Check, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Wrench, ChevronLeft, ChevronRight, Circle } from 'lucide-react'
 
 const TOOLS = [
   { id: 'select',  title: 'Move',   Icon: MousePointer2 },
@@ -37,7 +37,6 @@ export default function BottomToolbar({
   canvasSize,
   canvasBackground,
   showLayerPanel,
-  onAddImage,
   onFlip,
   onSetBackground,
   onToggleLayerPanel,
@@ -260,15 +259,6 @@ export default function BottomToolbar({
         style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         onScroll={updateFades}
       >
-
-      <button
-        onClick={onAddImage}
-        className="flex items-center gap-1 px-3 py-3 sm:px-3 sm:py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
-      >
-        <ImagePlus size={16} /> <span className="hidden sm:inline">Import</span>
-      </button>
-
-      <div className="w-px h-6 bg-white/10 mx-0.5 shrink-0" />
 
       {/* Tool selector */}
 

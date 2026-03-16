@@ -1,4 +1,4 @@
-import { RotateCcw, Clock } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -15,13 +15,6 @@ function formatDate(ts) {
 export default function HistoryPanel({ entries, onRestore }) {
   return (
     <div className="flex flex-col min-h-0">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 shrink-0">
-        <Clock size={13} className="text-white/40" />
-        <span className="text-sm font-semibold text-white">History</span>
-        <span className="text-xs text-white/30 ml-auto">{entries.length}/5</span>
-      </div>
-
       {/* Entry list */}
       <div className="overflow-y-auto flex flex-col gap-1 p-2">
         {entries.length === 0 && (

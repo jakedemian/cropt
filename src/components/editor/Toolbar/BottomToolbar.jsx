@@ -276,7 +276,7 @@ export default function BottomToolbar({
         </button>
         {!toolsExpanded && (
           <span className={`w-7 h-7 flex items-center justify-center pointer-events-none ${activeTool === 'eraser' ? 'text-red-400' : 'text-[#0fff95]'}`}>
-            <ActiveToolIcon size={14} />
+            <ActiveToolIcon size={18} />
           </span>
         )}
       </div>
@@ -316,8 +316,6 @@ export default function BottomToolbar({
       {/* Brush controls — inline when draw tool is active */}
       {isDrawing && (
         <>
-          <div className="w-px h-6 bg-white/10 mx-0.5 shrink-0" />
-
           {activeTool === 'brush' && (
             <input
               type="color"
@@ -412,6 +410,22 @@ export default function BottomToolbar({
         </>
       )}
 
+      {/* Clear area — erase pixels within marquee selection on the active raster layer */}
+      {!isDrawing && marqueeSelection && (
+        <button
+          onClick={onDeleteMarqueeArea}
+          title="Erase pixels in selected area"
+          className="flex items-center gap-1.5 px-3 py-3 sm:px-3 sm:py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
+        >
+          <Eraser size={16} /> <span className="hidden sm:inline">Clear</span>
+        </button>
+      )}
+
+      {/* Divider — separates tool-specific controls from canvas/document controls */}
+      {(isDrawing || marqueeSelection) && (
+        <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
+      )}
+
       {/* Layers toggle — hidden on desktop (handled by sidebar) */}
       <button
         onClick={onToggleLayerPanel}
@@ -441,17 +455,6 @@ export default function BottomToolbar({
           className="flex items-center gap-1.5 px-3 py-3 sm:px-3 sm:py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
         >
           <Crop size={16} /> <span className="hidden sm:inline">Crop</span>
-        </button>
-      )}
-
-      {/* Clear area — erase pixels within marquee selection on the active raster layer */}
-      {!isDrawing && marqueeSelection && (
-        <button
-          onClick={onDeleteMarqueeArea}
-          title="Erase pixels in selected area"
-          className="flex items-center gap-1.5 px-3 py-3 sm:px-3 sm:py-2 rounded text-sm font-medium bg-[#363b44] text-white hover:bg-[#424850] transition-colors whitespace-nowrap shrink-0"
-        >
-          <Eraser size={16} /> <span className="hidden sm:inline">Clear</span>
         </button>
       )}
 

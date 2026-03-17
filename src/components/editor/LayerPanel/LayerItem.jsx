@@ -132,46 +132,6 @@ export default function LayerItem({
           {node.name || (node.type === 'text' ? 'Text' : `Layer ${index + 1}`)}
         </span>
 
-        {/* Opacity scrub button */}
-        <div className="relative shrink-0" ref={opacityBtnRef}>
-          <button
-            className="relative w-11 text-xs text-white/50 hover:text-white cursor-ew-resize transition-colors text-center select-none px-1 pb-1"
-            style={{ touchAction: 'none' }}
-            onPointerDown={handleOpacityPointerDown}
-            onPointerMove={handleOpacityPointerMove}
-            onPointerUp={handleOpacityPointerUp}
-            title="Drag to adjust opacity · tap for slider"
-          >
-            {Math.round((node.opacity ?? 1) * 100)}%
-            <span
-              className="absolute bottom-0 left-0 h-0.5 rounded-full bg-[#0fff95]/50"
-              style={{ width: `${(node.opacity ?? 1) * 100}%` }}
-            />
-          </button>
-
-          {opacityPopoverOpen && (
-            <div
-              ref={opacityOverlayRef}
-              className="fixed bg-[#2d3139] border border-white/10 rounded-xl shadow-2xl flex flex-col items-center gap-2 px-3 py-4"
-              style={{ left: popoverPos.left, bottom: popoverPos.bottom, transform: 'translateX(-50%)', zIndex: 50 }}
-            >
-              <span className="text-xs text-white/40 tabular-nums">{Math.round((node.opacity ?? 1) * 100)}%</span>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={node.opacity ?? 1}
-                onPointerDown={onOpacityStart}
-                onChange={(e) => onOpacityChange?.(node.id, parseFloat(e.target.value))}
-                className="accent-[#0fff95]"
-                style={{ writingMode: 'vertical-lr', direction: 'rtl', width: '36px', height: '120px', cursor: 'pointer' }}
-              />
-              <span className="text-xs text-white/40 tabular-nums">0%</span>
-            </div>
-          )}
-        </div>
-
         {/* Rasterize button — text nodes only */}
         {node.type === 'text' && (
           <button
@@ -225,6 +185,46 @@ export default function LayerItem({
         >
           <Trash2 size={16} />
         </button>
+
+        {/* Opacity scrub button */}
+        <div className="relative shrink-0" ref={opacityBtnRef}>
+          <button
+            className="relative w-11 text-xs text-white/50 hover:text-white cursor-ew-resize transition-colors text-center select-none px-1 pb-1"
+            style={{ touchAction: 'none' }}
+            onPointerDown={handleOpacityPointerDown}
+            onPointerMove={handleOpacityPointerMove}
+            onPointerUp={handleOpacityPointerUp}
+            title="Drag to adjust opacity · tap for slider"
+          >
+            {Math.round((node.opacity ?? 1) * 100)}%
+            <span
+              className="absolute bottom-0 left-0 h-0.5 rounded-full bg-[#0fff95]/50"
+              style={{ width: `${(node.opacity ?? 1) * 100}%` }}
+            />
+          </button>
+
+          {opacityPopoverOpen && (
+            <div
+              ref={opacityOverlayRef}
+              className="fixed bg-[#2d3139] border border-white/10 rounded-xl shadow-2xl flex flex-col items-center gap-2 px-3 py-4"
+              style={{ left: popoverPos.left, bottom: popoverPos.bottom, transform: 'translateX(-50%)', zIndex: 50 }}
+            >
+              <span className="text-xs text-white/40 tabular-nums">{Math.round((node.opacity ?? 1) * 100)}%</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={node.opacity ?? 1}
+                onPointerDown={onOpacityStart}
+                onChange={(e) => onOpacityChange?.(node.id, parseFloat(e.target.value))}
+                className="accent-[#0fff95]"
+                style={{ writingMode: 'vertical-lr', direction: 'rtl', width: '36px', height: '120px', cursor: 'pointer' }}
+              />
+              <span className="text-xs text-white/40 tabular-nums">0%</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Drop indicator — below this item (only for last slot) */}

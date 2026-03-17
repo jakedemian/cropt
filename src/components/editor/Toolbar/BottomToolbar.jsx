@@ -57,12 +57,8 @@ export default function BottomToolbar({
   onSetActiveTool,
   // Text edit mode
   onEnterTextEdit,
-  onConfirmTextEdit,
-  onCancelTextEdit,
   onTextStyleStart,
   onTextStyleChange,
-  editingNode,
-  onFontChange,
   // Brush config
   brushColor,
   brushSize,
@@ -167,48 +163,6 @@ export default function BottomToolbar({
           className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors"
         >
           <Check size={16} /> Apply Resize
-        </button>
-      </footer>
-    )
-  }
-
-  // While in inline text editing, show font selector + confirm / cancel
-  if (isTextEditing) {
-    return (
-      <footer
-        className="flex items-center gap-3 px-4 h-16 sm:h-14 bg-[#24272f] text-white shrink-0 border-t border-white/5 overflow-x-auto"
-        style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {/* Font selector */}
-        <select
-          value={editingNode?.fontFamily ?? 'Anton'}
-          onChange={(e) => onFontChange(e.target.value)}
-          className="h-11 sm:h-9 px-2 rounded text-sm bg-[#363b44] text-white border border-white/15 cursor-pointer shrink-0"
-          style={{ fontFamily: editingNode?.fontFamily ?? 'Anton' }}
-          title="Font family"
-        >
-          {FONTS.map(({ label, value }) => (
-            <option key={value} value={value} style={{ fontFamily: value }}>
-              {label}
-            </option>
-          ))}
-        </select>
-
-        <div className="flex-1" />
-
-        {/* Keyboard hint — only useful on desktop with a physical keyboard */}
-        <span className="hidden sm:block text-xs text-white/40 whitespace-nowrap">Cmd+Enter to confirm · Esc to cancel</span>
-        <button
-          onClick={onCancelTextEdit}
-          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-red-700 hover:bg-red-600 transition-colors shrink-0"
-        >
-          <X size={16} /> Cancel
-        </button>
-        <button
-          onClick={onConfirmTextEdit}
-          className="flex items-center gap-1.5 px-5 py-3 sm:px-4 sm:py-2 rounded text-sm font-medium bg-[#0fff95] text-[#24272f] hover:bg-[#0de882] transition-colors shrink-0"
-        >
-          <Check size={16} /> Done
         </button>
       </footer>
     )
@@ -574,7 +528,7 @@ export default function BottomToolbar({
       )}
 
       {/* Per-text controls */}
-      {activeTool === 'select' && selectedNode?.type === 'text' && (
+      {activeTool === 'select' && selectedNode?.type === 'text' && !isTextEditing && (
         <>
           <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
 

@@ -813,6 +813,7 @@ export default function App() {
             onTextChange={(text) => editingNodeId && updateNode(editingNodeId, { text })}
             onConfirmTextEdit={handleConfirmTextEdit}
             onCancelTextEdit={handleCancelTextEdit}
+            onFontChange={(fontFamily) => editingNodeId && updateNode(editingNodeId, { fontFamily })}
             drawMode={drawMode}
             drawNodeId={drawMode ? selectedNodeId : null}
             drawTool={drawTool}
@@ -957,12 +958,8 @@ export default function App() {
         activeTool={activeTool}
         onSetActiveTool={handleSetActiveTool}
         onEnterTextEdit={() => selectedNode?.type === 'text' && handleStartEditText(selectedNode.id)}
-        onConfirmTextEdit={handleConfirmTextEdit}
-        onCancelTextEdit={handleCancelTextEdit}
         onTextStyleStart={() => pushHistory()}
         onTextStyleChange={(updates) => selectedNode && updateNode(selectedNode.id, updates)}
-        editingNode={nodes.find((n) => n.id === editingNodeId) ?? null}
-        onFontChange={(fontFamily) => editingNodeId && updateNode(editingNodeId, { fontFamily })}
         brushColor={brushColor}
         brushSize={brushSize}
         onBrushColorChange={setBrushColor}

@@ -139,6 +139,7 @@ export default function CanvasStage({
   onTextChange,
   onConfirmTextEdit,
   onCancelTextEdit,
+  onFontChange,
   // draw-mode props
   drawMode,
   drawNodeId,
@@ -1270,6 +1271,7 @@ export default function CanvasStage({
               onTextChange={onTextChange}
               onConfirm={onConfirmTextEdit}
               onCancel={onCancelTextEdit}
+              onFontChange={onFontChange}
             />
           )}
         </>

@@ -12,7 +12,7 @@ const FONTS = [
 ]
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Check, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Wrench, ChevronLeft, ChevronRight, Circle, MoveHorizontal, Minus } from 'lucide-react'
+import { X, Check, Layers, Maximize, Crop, Scissors, FlipHorizontal2, Pencil, Palette, Paintbrush, Eraser, MousePointer2, Type, BoxSelect, Circle, MoveHorizontal, Minus } from 'lucide-react'
 
 const TOOLS = [
   { id: 'select',  title: 'Move',   Icon: MousePointer2 },
@@ -71,7 +71,10 @@ export default function BottomToolbar({
   stageScale = 1,
 }) {
   // ── Hooks must be declared before any early returns (Rules of Hooks) ───────
-  const [toolsExpanded, setToolsExpanded] = useState(false)
+  const [toolPopoverOpen, setToolPopoverOpen] = useState(false)
+  const [toolBtnPos, setToolBtnPos] = useState({ left: 0, bottom: 0 })
+  const toolBtnRef = useRef(null)
+  const toolMenuRef = useRef(null)
   const [bgOpen, setBgOpen] = useState(false)
   const [sizeOverlayOpen, setSizeOverlayOpen] = useState(false)
   const [sizeOverlayPos, setSizeOverlayPos] = useState({ left: 0, bottom: 0 })
@@ -100,6 +103,16 @@ export default function BottomToolbar({
   const bgBtnRef = useRef(null)
   const bgMenuRef = useRef(null)
   const [bgPos, setBgPos] = useState({ left: 0, bottom: 0 })
+
+  useEffect(() => {
+    if (!toolPopoverOpen) return
+    const handler = (e) => {
+      if (toolBtnRef.current?.contains(e.target) || toolMenuRef.current?.contains(e.target)) return
+      setToolPopoverOpen(false)
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [toolPopoverOpen])
 
   useEffect(() => {
     if (!bgOpen) return
@@ -265,38 +278,41 @@ export default function BottomToolbar({
 
       {/* Tool selector */}
 
-      {/* Mobile: wrench toggle + active tool indicator + collapsible list */}
+      {/* Mobile: active tool icon button → opens vertical popover */}
       <div className="sm:hidden flex items-center shrink-0 -ml-2">
-        {!toolsExpanded && (
-          <span className={`w-10 h-10 flex items-center justify-center pointer-events-none ${activeTool === 'eraser' ? 'text-red-400' : 'text-[#0fff95]'}`}>
-            <ActiveToolIcon size={22} />
-          </span>
-        )}
+        <style>{`@keyframes toolPopoverIn { from { opacity: 0; transform: translateX(-50%) scale(0.92) translateY(6px); } to { opacity: 1; transform: translateX(-50%) scale(1) translateY(0px); } }`}</style>
         <button
-          className="w-10 h-10 flex items-center justify-center rounded bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850] transition-colors"
-          onClick={() => setToolsExpanded((p) => !p)}
-          title={toolsExpanded ? 'Hide tools' : 'Show tools'}
+          ref={toolBtnRef}
+          title="Switch tool"
+          onClick={() => {
+            if (toolBtnRef.current) {
+              const rect = toolBtnRef.current.getBoundingClientRect()
+              setToolBtnPos({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 8 })
+            }
+            setToolPopoverOpen((o) => !o)
+          }}
+          className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${toolPopoverOpen ? 'bg-[#0de882]' : 'bg-[#0fff95] hover:bg-[#0de882]'} text-[#24272f]`}
         >
-          {toolsExpanded ? <ChevronLeft size={18} /> : <><Wrench size={17} /><ChevronRight size={14} className="-ml-0.5" /></>}
+          <ActiveToolIcon size={22} />
         </button>
-      </div>
 
-      <div
-        className="sm:hidden overflow-hidden transition-all duration-200 ease-out shrink-0"
-        style={{ maxWidth: toolsExpanded ? '216px' : '0px' }}
-      >
-        <div className="flex items-center bg-[#2d3139] rounded-full p-0.5 gap-0.5">
-          {TOOLS.map((tool) => (
-            <button
-              key={tool.id}
-              title={tool.title}
-              onClick={() => { onSetActiveTool(tool.id); setToolsExpanded(false) }}
-              className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 ${activeTool === tool.id ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/60 hover:text-white hover:bg-[#424850]'}`}
-            >
-              <tool.Icon size={18} />
-            </button>
-          ))}
-        </div>
+        {toolPopoverOpen && (
+          <div
+            ref={toolMenuRef}
+            className="fixed bg-[#2d3139] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+            style={{ left: toolBtnPos.left, bottom: toolBtnPos.bottom, transform: 'translateX(-50%)', zIndex: 50, animation: 'toolPopoverIn 150ms cubic-bezier(0.16,1,0.3,1)' }}
+          >
+            {TOOLS.map((tool) => (
+              <button
+                key={tool.id}
+                onClick={() => { onSetActiveTool(tool.id); setToolPopoverOpen(false) }}
+                className={`w-full flex items-center justify-center p-3 transition-colors ${activeTool === tool.id ? 'bg-[#0fff95] text-[#24272f]' : 'text-white/80 hover:bg-[#363b44]'}`}
+              >
+                <tool.Icon size={18} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Desktop: always visible in fixed order */}

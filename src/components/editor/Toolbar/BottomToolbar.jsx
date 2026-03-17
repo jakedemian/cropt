@@ -442,9 +442,7 @@ export default function BottomToolbar({
       )}
 
       {/* Divider — separates tool-specific controls from canvas/document controls */}
-      {(isDrawing || marqueeSelection) && (
-        <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
-      )}
+      <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
 
       {/* Layers toggle — hidden on desktop (handled by sidebar) */}
       <button

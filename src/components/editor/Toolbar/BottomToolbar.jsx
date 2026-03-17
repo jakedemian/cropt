@@ -266,7 +266,12 @@ export default function BottomToolbar({
       {/* Tool selector */}
 
       {/* Mobile: wrench toggle + active tool indicator + collapsible list */}
-      <div className="sm:hidden flex items-center shrink-0">
+      <div className="sm:hidden flex items-center shrink-0 -ml-2">
+        {!toolsExpanded && (
+          <span className={`w-10 h-10 flex items-center justify-center pointer-events-none ${activeTool === 'eraser' ? 'text-red-400' : 'text-[#0fff95]'}`}>
+            <ActiveToolIcon size={22} />
+          </span>
+        )}
         <button
           className="w-10 h-10 flex items-center justify-center rounded bg-[#2d3139] text-white/60 hover:text-white hover:bg-[#424850] transition-colors"
           onClick={() => setToolsExpanded((p) => !p)}
@@ -274,11 +279,6 @@ export default function BottomToolbar({
         >
           {toolsExpanded ? <ChevronLeft size={18} /> : <><Wrench size={17} /><ChevronRight size={14} className="-ml-0.5" /></>}
         </button>
-        {!toolsExpanded && (
-          <span className={`w-7 h-7 flex items-center justify-center pointer-events-none ${activeTool === 'eraser' ? 'text-red-400' : 'text-[#0fff95]'}`}>
-            <ActiveToolIcon size={18} />
-          </span>
-        )}
       </div>
 
       <div

@@ -813,6 +813,7 @@ export default function App() {
             onConfirmTextEdit={handleConfirmTextEdit}
             onCancelTextEdit={handleCancelTextEdit}
             onFontChange={(fontFamily) => editingNodeId && updateNode(editingNodeId, { fontFamily })}
+            onFontSizeChange={(fontSize) => editingNodeId && updateNode(editingNodeId, { fontSize })}
             drawMode={drawMode}
             drawNodeId={drawMode ? selectedNodeId : null}
             drawTool={drawTool}

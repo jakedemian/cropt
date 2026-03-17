@@ -175,6 +175,8 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
                 showDropAbove={showDropAbove}
                 showDropBelow={showDropBelow}
                 onSelect={() => onSelectNode(node.id)}
+                onActivateTransform={() => onActivateTransform(node.id)}
+                transformEnabled={transformEnabled}
                 onToggleVisible={() => onToggleVisible(node.id)}
                 onDragHandlePointerDown={(e) => handleDragHandlePointerDown(panelIndex, e)}
                 onOpacityStart={onOpacityStart}

@@ -27,15 +27,23 @@ export async function generateMetadata(
 
   const imageUrl = `${process.env.R2_PUBLIC_URL}/${upload.r2Key}`
 
+  const description = 'Made with Cropt — create your own memes at cropt.app'
+
   return {
     title: 'Meme on Cropt',
+    description,
     openGraph: {
       title: 'Meme on Cropt',
+      description,
+      siteName: 'Cropt',
+      type: 'website',
       images: [{ url: imageUrl, width: upload.width ?? undefined, height: upload.height ?? undefined }],
       url: `https://cropt.app/m/${upload.id}`,
     },
     twitter: {
       card: 'summary_large_image',
+      title: 'Meme on Cropt',
+      description,
       images: [imageUrl],
     },
   }

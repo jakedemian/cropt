@@ -5,13 +5,19 @@ import { useEffect, useRef } from 'react'
 export default function TextEditOverlay({ node, stageViewport, onTextChange, onConfirm, onCancel }) {
   const textareaRef = useRef(null)
 
-  // Auto-focus and move cursor to end on mount
+  // Auto-focus and move cursor to end on mount.
+  // Deferred via setTimeout so focus isn't contested by the pointer event
+  // that triggered placement (pointerup on TextPlaceOverlay) still resolving.
   useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
-    ta.focus()
-    const len = ta.value.length
-    ta.setSelectionRange(len, len)
+    const t = setTimeout(() => {
+      if (!textareaRef.current) return
+      ta.focus()
+      const len = ta.value.length
+      ta.setSelectionRange(len, len)
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   // Auto-resize textarea height whenever text content changes

@@ -77,13 +77,13 @@ export default async function ViewerPage(
       </header>
 
       {/* Image */}
-      <div className="flex-1 flex items-center justify-center p-4 min-h-0">
+      <div className="flex-1 flex items-center justify-center py-1 md:p-4 min-h-0">
         <img
           src={imageUrl}
           alt="Meme"
           width={upload.width ?? undefined}
           height={upload.height ?? undefined}
-          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+          className="max-w-full max-h-full object-contain shadow-2xl"
         />
       </div>
 

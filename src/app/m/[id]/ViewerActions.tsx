@@ -24,7 +24,7 @@ export default function ViewerActions({ id, shareUrl }: { id: string; shareUrl: 
   }
 
   return (
-    <div className="flex items-center justify-between px-4 pb-6 pt-2 shrink-0">
+    <div className="flex items-center justify-between px-4 pb-3 pt-1 md:pb-6 md:pt-2 shrink-0">
       <button
         onClick={handleReport}
         disabled={reported}

@@ -681,7 +681,6 @@ export default function App() {
     setEditingOrigState({ nodes, canvasSize, canvasBackground })
     addNode(textNode)
     selectNode(id)
-    setActiveTool('select')
     setEditingNodeId(id)
   }
 

@@ -14,9 +14,10 @@ const MIN_SCALE = 0.1
 const MAX_SCALE = 8
 const MIN_DRAG_CANVAS_PX = 20  // minimum canvas-unit width to treat as a bounded drag vs a click
 
-function TextPlaceOverlay({ stageViewport, onPlaceText }) {
+function TextPlaceOverlay({ stageViewport, canvasSize, setStageViewport, onPlaceText }) {
   const [dragRect, setDragRect] = useState(null) // screen coords { x, y, w, h }
   const dragRef = useRef({ active: false, startX: 0, startY: 0, moved: false })
+  const panRef  = useRef(null) // { clientX, clientY, vp } — set when drag begins outside canvas
 
   const toCanvas = (screenX, screenY, containerRect) => ({
     x: (screenX - containerRect.left - stageViewport.x) / stageViewport.scale,
@@ -26,18 +27,35 @@ function TextPlaceOverlay({ stageViewport, onPlaceText }) {
   return (
     <div
       className="absolute inset-0"
-      style={{ cursor: 'crosshair', zIndex: 10 }}
+      style={{ cursor: 'crosshair', zIndex: 10, touchAction: 'none' }}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId)
+        const containerRect = e.currentTarget.getBoundingClientRect()
+        const px = e.clientX - containerRect.left
+        const py = e.clientY - containerRect.top
+        const vp = stageViewport
+        const outsideCanvas = px < vp.x || px > vp.x + canvasSize.width * vp.scale
+          || py < vp.y || py > vp.y + canvasSize.height * vp.scale
+        if (outsideCanvas) {
+          panRef.current = { clientX: e.clientX, clientY: e.clientY, vp }
+          return
+        }
         const r = dragRef.current
         r.active  = true
         r.moved   = false
         r.startX  = e.clientX
         r.startY  = e.clientY
-        r.containerRect = e.currentTarget.getBoundingClientRect()
+        r.containerRect = containerRect
         setDragRect(null)
       }}
       onPointerMove={(e) => {
+        if (panRef.current) {
+          const start = panRef.current
+          const dx = e.clientX - start.clientX
+          const dy = e.clientY - start.clientY
+          setStageViewport({ ...start.vp, x: start.vp.x + dx, y: start.vp.y + dy })
+          return
+        }
         const r = dragRef.current
         if (!r.active) return
         const dx = e.clientX - r.startX
@@ -51,6 +69,10 @@ function TextPlaceOverlay({ stageViewport, onPlaceText }) {
         setDragRect({ x: x - containerLeft, y: y - containerTop, w: Math.abs(dx), h: Math.abs(dy) })
       }}
       onPointerUp={(e) => {
+        if (panRef.current) {
+          panRef.current = null
+          return
+        }
         const r = dragRef.current
         if (!r.active) return
         r.active = false
@@ -966,7 +988,7 @@ export default function CanvasStage({
             y={stageViewport.y}
             scaleX={stageViewport.scale}
             scaleY={stageViewport.scale}
-            draggable={!canvasResizeMode && !cropMode && !canvasCropMode && !textPlaceMode && !editingNodeId && !drawMode && !marqueeMode}
+            draggable={!canvasResizeMode && !cropMode && !canvasCropMode && !(textPlaceMode && !editingNodeId) && !drawMode && !marqueeMode}
             onDragMove={handleStageDragMove}
             onDragEnd={handleStageDragEnd}
             onWheel={canvasResizeMode || cropMode || canvasCropMode || drawMode ? undefined : handleWheel}
@@ -1256,9 +1278,11 @@ export default function CanvasStage({
           )}
 
           {/* DOM overlay: crosshair click-to-place / drag-to-bound for text placement mode */}
-          {textPlaceMode && (
+          {textPlaceMode && !editingNodeId && (
             <TextPlaceOverlay
               stageViewport={stageViewport}
+              canvasSize={canvasSize}
+              setStageViewport={setStageViewport}
               onPlaceText={onPlaceText}
             />
           )}

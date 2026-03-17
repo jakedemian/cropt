@@ -244,12 +244,14 @@ export default function App() {
   // This acts as a safety net after deletes, session restores, canvas crops, etc.
   // Text placement mode is exempt — it intentionally has no targeted layer while
   // the user is choosing where to place a new text node.
+  // selectedNodeId is intentionally excluded from deps — the invariant should only
+  // fire when the nodes list or tool changes, not when the user explicitly deselects.
   useEffect(() => {
     if (activeTool === 'text') return
     if (nodes.length === 0) return
     if (nodes.find((n) => n.id === selectedNodeId)) return
     selectNode(nodes[nodes.length - 1].id)
-  }, [nodes, selectedNodeId, activeTool, selectNode])
+  }, [nodes, activeTool, selectNode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Text mode ──────────────────────────────────────────────────────────────
   const [editingNodeId, setEditingNodeId] = useState(null)

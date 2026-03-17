@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { X, Plus } from 'lucide-react'
+import { ChevronDown, Plus, CircleX } from 'lucide-react'
 import LayerItem from './LayerItem'
 
 // embedded=true: renders as a flex column for use inside the desktop sidebar.
@@ -69,9 +69,18 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
             <button
               onClick={onNewLayer}
               title="New raster layer"
-              className="p-1 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors"
             >
-              <Plus size={14} />
+              <Plus size={20} />
+            </button>
+          )}
+          {selectedNodeId && (
+            <button
+              onClick={() => onSelectNode(null)}
+              title="Deselect layer"
+              className="p-1.5 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <CircleX size={20} />
             </button>
           )}
         </div>
@@ -131,16 +140,25 @@ export default function LayerPanel({ nodes, selectedNodeId, transformEnabled, on
           <button
             onClick={onNewLayer}
             title="New raster layer"
-            className="p-2 sm:p-1 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors mr-1"
+            className="p-2 sm:p-1.5 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors mr-1"
           >
-            <Plus size={14} />
+            <Plus size={20} />
+          </button>
+        )}
+        {selectedNodeId && (
+          <button
+            onClick={() => onSelectNode(null)}
+            title="Deselect layer"
+            className="p-2 sm:p-1.5 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors mr-1"
+          >
+            <CircleX size={20} />
           </button>
         )}
         <button
           onClick={onClose}
-          className="text-white/40 hover:text-white p-2 sm:p-1 rounded transition-colors"
+          className="text-white/40 hover:text-white p-2 sm:p-1.5 rounded transition-colors"
         >
-          <X size={16} strokeWidth={2.5} />
+          <ChevronDown size={22} strokeWidth={2.5} />
         </button>
       </div>
 

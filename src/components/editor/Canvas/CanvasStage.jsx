@@ -93,6 +93,14 @@ function TextPlaceOverlay({ stageViewport, canvasSize, setStageViewport, onPlace
         }
         onPlaceText(origin.x, origin.y)
       }}
+      onPointerCancel={() => {
+        // On real mobile the browser may fire pointercancel instead of pointerup
+        // (e.g. scroll intervention, system gesture). Reset all drag/pan state so
+        // the overlay doesn't get stuck.
+        panRef.current = null
+        dragRef.current.active = false
+        setDragRect(null)
+      }}
     >
       {dragRect && (
         <div

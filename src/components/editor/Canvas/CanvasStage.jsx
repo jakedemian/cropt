@@ -376,7 +376,10 @@ export default function CanvasStage({
     if (!float || !pos || !nodeId) return
     const canvas = rasterCanvasRef.current[nodeId]
     if (!canvas) return
-    canvas.getContext('2d').drawImage(float, pos.x, pos.y)
+    const stampNode = nodesRef.current.find((n) => n.id === nodeId)
+    const sox = stampNode?.x ?? 0
+    const soy = stampNode?.y ?? 0
+    canvas.getContext('2d').drawImage(float, pos.x - sox, pos.y - soy)
     const dataUrl = canvas.toDataURL('image/png')
     rasterDataUrlCache.current[nodeId] = dataUrl
     onMarqueeEndRef.current(nodeId, dataUrl)
@@ -432,11 +435,15 @@ export default function CanvasStage({
       canvas = rasterizeImageNode(nodeId)
       if (!canvas) return
     }
-    const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
+    const delNode = nodesRef.current.find((n) => n.id === nodeId)
+    const wasImage = delNode?.type === 'image'
     onMarqueeStartRef.current()  // push history before mutation (captures pre-rasterize state)
     if (wasImage) onConvertToRasterRef.current?.(nodeId)
-    const fx = Math.round(rect.x),     fy = Math.round(rect.y)
-    const fw = Math.round(rect.width), fh = Math.round(rect.height)
+    // Subtract node offset: marquee rect is in canvas space, raster canvas is node-local
+    const ox = wasImage ? 0 : (delNode?.x ?? 0)
+    const oy = wasImage ? 0 : (delNode?.y ?? 0)
+    const fx = Math.round(rect.x) - ox, fy = Math.round(rect.y) - oy
+    const fw = Math.round(rect.width),  fh = Math.round(rect.height)
     canvas.getContext('2d').clearRect(fx, fy, fw, fh)
     stageRef.current?.batchDraw()
     const dataUrl = canvas.toDataURL('image/png')
@@ -666,13 +673,18 @@ export default function CanvasStage({
       }
       if (!canvas) return
       e.currentTarget.setPointerCapture(e.pointerId)
-      const wasImage = nodesRef.current.find((n) => n.id === nodeId)?.type === 'image'
+      const cutNode = nodesRef.current.find((n) => n.id === nodeId)
+      const wasImage = cutNode?.type === 'image'
       onMarqueeStartRef.current()
       if (wasImage) onConvertToRasterRef.current?.(nodeId)
       marqueePhaseRef.current  = 'moving'
       marqMoveStartRef.current = { pt, rect }
-      const fx = Math.round(rect.x),     fy = Math.round(rect.y)
-      const fw = Math.round(rect.width), fh = Math.round(rect.height)
+      // Canvas-space position for display overlay; node-local for pixel ops
+      const fxCanvas = Math.round(rect.x),   fyCanvas = Math.round(rect.y)
+      const ox = wasImage ? 0 : (cutNode?.x ?? 0)
+      const oy = wasImage ? 0 : (cutNode?.y ?? 0)
+      const fx = fxCanvas - ox,              fy = fyCanvas - oy
+      const fw = Math.round(rect.width),     fh = Math.round(rect.height)
       if (fw < 1 || fh < 1) return
       const float = document.createElement('canvas')
       float.width  = fw
@@ -681,8 +693,8 @@ export default function CanvasStage({
       canvas.getContext('2d').clearRect(fx, fy, fw, fh)
       stageRef.current?.batchDraw()
       marqFloatRef.current    = float
-      marqFloatPosRef.current = { x: fx, y: fy }
-      setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fx, y: fy, width: fw, height: fh })
+      marqFloatPosRef.current = { x: fxCanvas, y: fyCanvas }
+      setMarqFloatDisplay({ dataUrl: float.toDataURL('image/png'), x: fxCanvas, y: fyCanvas, width: fw, height: fh })
     }
   }, [getMarqueePoint, stageRef, rasterizeImageNode])
 

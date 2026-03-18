@@ -38,14 +38,11 @@ export function useImageImport({ canvasSize, setCanvasSize, addNode, selectNode 
           setCanvasSize({ width: newCanvasWidth, height: newCanvasHeight })
         }
 
-        const x = (newCanvasWidth - w) / 2
-        const y = (newCanvasHeight - h) / 2
-
-        // Rasterize: draw the image centred onto a full-canvas offscreen canvas
+        // Rasterize: draw the image onto a canvas sized to the image (not the full canvas)
         const offscreen = document.createElement('canvas')
-        offscreen.width = newCanvasWidth
-        offscreen.height = newCanvasHeight
-        offscreen.getContext('2d').drawImage(img, x, y, w, h)
+        offscreen.width = w
+        offscreen.height = h
+        offscreen.getContext('2d').drawImage(img, 0, 0, w, h)
         URL.revokeObjectURL(objectUrl)
 
         const id = uuidv4()
@@ -53,10 +50,10 @@ export function useImageImport({ canvasSize, setCanvasSize, addNode, selectNode 
           id,
           type: 'raster',
           name: name.slice(0, 24) || 'Image',
-          x: 0,
-          y: 0,
-          width: newCanvasWidth,
-          height: newCanvasHeight,
+          x: (newCanvasWidth - w) / 2,
+          y: (newCanvasHeight - h) / 2,
+          width: w,
+          height: h,
           dataUrl: offscreen.toDataURL('image/png'),
           opacity: 1,
           visible: true,

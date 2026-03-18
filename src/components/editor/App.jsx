@@ -627,7 +627,7 @@ export default function App() {
   // Placed after resize/crop handler declarations to avoid temporal dead zone.
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape' && drawMode) { setActiveTool('select'); return }
+      if (e.key === 'Escape' && (drawMode || activeTool === 'text')) { setActiveTool('select'); return }
       if (canvasResizeMode || cropMode || canvasCropMode || editingNodeId) return
       // Tool hotkeys — no modifier keys
       if (!e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -647,7 +647,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [undo, redo, canvasResizeMode, cropMode, canvasCropMode, editingNodeId, drawMode, handleSetActiveTool, handleEnterResize, handleEnterCanvasCrop, selectedNode, marqueeSelection])
+  }, [undo, redo, canvasResizeMode, cropMode, canvasCropMode, editingNodeId, activeTool, drawMode, handleSetActiveTool, handleEnterResize, handleEnterCanvasCrop, selectedNode, marqueeSelection])
 
   // ── Text placement handlers ────────────────────────────────────────────────
 

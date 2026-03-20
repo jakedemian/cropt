@@ -24,5 +24,13 @@ export async function GET(
   if (!rows[0]) notFound()
 
   const imageUrl = `${process.env.R2_PUBLIC_URL}/${rows[0].r2Key}`
-  return NextResponse.redirect(imageUrl, { status: 302 })
+  const upstream = await fetch(imageUrl)
+  if (!upstream.ok) notFound()
+
+  return new Response(upstream.body, {
+    headers: {
+      'Content-Type': upstream.headers.get('Content-Type') ?? 'image/png',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
+  })
 }

@@ -8,6 +8,14 @@ const withPWAConfig = withPWA({
 const nextConfig = {
   reactStrictMode: true,
   serverExternalPackages: [],
+  async rewrites() {
+    return [
+      {
+        source: '/m/:id.:ext(png|jpg|jpeg|webp)',
+        destination: '/i/:id.:ext',
+      },
+    ]
+  },
 }
 
 export default withPWAConfig(nextConfig)

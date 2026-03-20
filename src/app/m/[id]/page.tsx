@@ -79,7 +79,7 @@ export default async function ViewerPage(
       {/* Image */}
       <div className="flex-1 flex items-center justify-center py-1 md:p-4 min-h-0">
         <img
-          src={imageUrl}
+          src={`/m/${upload.id}.png`}
           alt="Meme"
           width={upload.width ?? undefined}
           height={upload.height ?? undefined}
